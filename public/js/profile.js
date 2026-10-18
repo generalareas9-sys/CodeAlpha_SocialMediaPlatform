@@ -46,6 +46,7 @@ async function loadProfile(username, autoEdit = false) {
     const data = await API.getUserProfile(username);
     profileUser = data.user;
     const posts = data.posts || [];
+    allProfilePosts = posts;
 
     renderProfileHeader(profileUser);
     renderProfilePosts(posts);
@@ -127,8 +128,29 @@ function renderProfileHeader(user) {
           </div>
         </div>
       </div>
+      <nav class="profile-tabs" role="tablist">
+        <button type="button" class="profile-tab active" data-tab="posts" role="tab" aria-selected="true">Posts</button>
+        <button type="button" class="profile-tab" data-tab="replies" role="tab" aria-selected="false">Replies</button>
+        <button type="button" class="profile-tab" data-tab="media" role="tab" aria-selected="false">Media</button>
+        <button type="button" class="profile-tab" data-tab="likes" role="tab" aria-selected="false">Likes</button>
+      </nav>
     </div>
   `;
+
+  // Attach tab switching
+  const tabBtns = headerMount.querySelectorAll('.profile-tab');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      const tabName = btn.getAttribute('data-tab');
+      handleProfileTabSwitch(tabName);
+    });
+  });
 
   // Attach Follow/Unfollow toggle (Optimistic UI)
   const followBtn = document.getElementById('btn-profile-follow');
@@ -192,6 +214,57 @@ function renderProfileHeader(user) {
       if (avatarInput) avatarInput.value = user.avatar_url || '';
       if (modal) modal.classList.add('active');
     });
+  }
+}
+
+let allProfilePosts = [];
+
+function handleProfileTabSwitch(tabName) {
+  const postsMount = document.getElementById('profile-posts-mount');
+  if (!postsMount) return;
+
+  if (tabName === 'posts') {
+    renderProfilePosts(allProfilePosts);
+  } else if (tabName === 'media') {
+    const mediaPosts = allProfilePosts.filter(p => (p.media && p.media.length > 0) || p.image_url);
+    if (mediaPosts.length === 0) {
+      postsMount.innerHTML = `
+        <div>
+          ${renderEmptyState({
+            icon: 'image',
+            title: 'No media posts yet',
+            description: 'This creator has not shared any photo posts yet.'
+          })}
+        </div>
+      `;
+    } else {
+      renderProfilePosts(mediaPosts);
+    }
+  } else if (tabName === 'replies') {
+    postsMount.innerHTML = `
+      <div>
+        ${renderEmptyState({
+          icon: 'message-circle',
+          title: 'No replies yet',
+          description: 'Replies by this creator will appear here.'
+        })}
+      </div>
+    `;
+  } else if (tabName === 'likes') {
+    const likedPosts = allProfilePosts.filter(p => p.is_liked);
+    if (likedPosts.length === 0) {
+      postsMount.innerHTML = `
+        <div>
+          ${renderEmptyState({
+            icon: 'heart',
+            title: 'No liked posts to show',
+            description: 'Posts liked by this creator will appear here.'
+          })}
+        </div>
+      `;
+    } else {
+      renderProfilePosts(likedPosts);
+    }
   }
 }
 

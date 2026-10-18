@@ -162,6 +162,7 @@ function renderTopNavbar(currentPath) {
         </div>
 
         <!-- Navbar Center: Global Search with Live Dropdown -->
+        ${(!currentUser && (isLogin || isRegister)) ? '<div class="navbar-center" style="display: none;"></div>' : `
         <div class="navbar-center">
           <div class="search-input-wrap">
             <span class="search-input-icon">
@@ -178,6 +179,7 @@ function renderTopNavbar(currentPath) {
           <!-- Live Search Results Dropdown -->
           <div class="search-results-dropdown" id="search-results-dropdown"></div>
         </div>
+        `}
 
         <!-- Navbar Right -->
         ${rightSectionHtml}

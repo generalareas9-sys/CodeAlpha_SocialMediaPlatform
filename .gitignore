@@ -4,6 +4,8 @@ node_modules/
 *.db-journal
 *.db-wal
 *.db-shm
-npm-debug.log*
-.DS_Store
 *.sqlite
+uploads/
+public/uploads/
+.DS_Store
+npm-debug.log*
