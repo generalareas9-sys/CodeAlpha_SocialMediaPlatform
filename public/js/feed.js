@@ -1,38 +1,73 @@
 /**
  * Linkora - Feed Controller
  * Connect. Share. Grow.
+ * Modern Instagram + Threads style feed with Lucide icons and polished animations.
  */
-let currentFilter = ''; // '' for following feed, 'all' for global
+let currentFilter = ''; // '' for following feed, 'all' for global explore
 
 async function pageInit(user) {
   if (user) {
     setupComposer(user);
-    setupSidebars(user);
     setupTabs();
     loadFeed();
   } else {
-    // Logged out visitor: show landing hero & global public feed
+    // Logged out visitor: show rich landing hero & public trending feed
     setupLoggedOutLanding();
     loadFeed(true);
   }
 }
 
+// ============================================================================
+// 1. Logged-Out Visitor Landing Page
+// ============================================================================
 function setupLoggedOutLanding() {
   const landingMount = document.getElementById('landing-hero-mount');
   if (landingMount) {
     landingMount.innerHTML = `
-      <section class="card landing-hero">
-        <div class="landing-tagline-badge">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-          <span>Connect. Share. Grow.</span>
+      <section class="landing-hero">
+        <div class="landing-badge">
+          ${renderIcon('sparkles', '', 'width="14" height="14"')}
+          <span>Welcome to Linkora</span>
         </div>
-        <h1 class="landing-headline">Where builders and creators connect</h1>
-        <p class="landing-subhead">Join a minimalist community to share insights, follow engineers, and stay inspired without the noise.</p>
-        <div class="landing-actions">
-          <a href="/register.html" class="btn btn-primary" style="padding: 10px 22px;">Join Linkora</a>
-          <a href="/login.html" class="btn btn-secondary" style="padding: 10px 22px;">Sign In</a>
+
+        <h1 class="landing-title">
+          Where <span class="gradient-text">creators & thinkers</span> connect.
+        </h1>
+
+        <p class="landing-subtitle">
+          Share your daily progress, explore real-time conversations, and grow your network on a human, modern social network.
+        </p>
+
+        <div class="landing-cta-group">
+          <a href="/register.html" class="btn btn-primary btn-lg">Get Started Free</a>
+          <a href="/login.html" class="btn btn-secondary btn-lg">Sign In to Account</a>
+        </div>
+
+        <!-- 3 Feature Highlight Cards -->
+        <div class="landing-features-grid">
+          <div class="landing-feature-card">
+            <div class="feature-icon-wrap">
+              ${renderIcon('sparkles', '', 'width="24" height="24"')}
+            </div>
+            <h3 class="feature-title">Real-Time Everything</h3>
+            <p class="feature-desc">Experience instant direct messaging, live reaction bursts, and real-time feed updates powered by Socket.io.</p>
+          </div>
+
+          <div class="landing-feature-card">
+            <div class="feature-icon-wrap">
+              ${renderIcon('image', '', 'width="24" height="24"')}
+            </div>
+            <h3 class="feature-title">Rich Stories & Media</h3>
+            <p class="feature-desc">Express yourself with 24-hour visual stories, multi-photo posts, and interactive polls with live voting.</p>
+          </div>
+
+          <div class="landing-feature-card">
+            <div class="feature-icon-wrap">
+              ${renderIcon('trending-up', '', 'width="24" height="24"')}
+            </div>
+            <h3 class="feature-title">Vibrant Discovery</h3>
+            <p class="feature-desc">Find trending hashtags (#), explore mutual connections, and follow inspiring builders and designers.</p>
+          </div>
         </div>
       </section>
     `;
@@ -43,12 +78,18 @@ function setupLoggedOutLanding() {
   const composer = document.getElementById('post-composer');
   if (composer) composer.style.display = 'none';
 
-  // Set default filter to 'all'
+  // Set default filter to 'all' and update feed title
   currentFilter = 'all';
+  const feedTitle = document.querySelector('.feed-title');
+  if (feedTitle) feedTitle.textContent = 'Trending on Linkora';
+
   const tabsWrap = document.querySelector('.feed-tabs');
   if (tabsWrap) tabsWrap.style.display = 'none';
 }
 
+// ============================================================================
+// 2. Post Composer
+// ============================================================================
 function setupComposer(user) {
   const avatarWrap = document.getElementById('composer-avatar-mount');
   if (avatarWrap) {
@@ -67,9 +108,9 @@ function setupComposer(user) {
 
   if (!textarea) return;
 
-  // Live character counter: disabled with no warning icon when empty; enabled when text present; red near 280
   btnSubmit.disabled = true;
 
+  // Auto-growing textarea + 280-character counter
   textarea.addEventListener('input', () => {
     const len = textarea.value.length;
     const remaining = 280 - len;
@@ -89,7 +130,7 @@ function setupComposer(user) {
       btnSubmit.disabled = false;
     }
 
-    // Auto grow textarea
+    // Auto grow
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 220) + 'px';
   });
@@ -104,25 +145,29 @@ function setupComposer(user) {
     });
   }
 
-  // Live image preview
+  // Image URL input preview
   if (imageInput) {
     imageInput.addEventListener('input', debounce(() => {
       const url = imageInput.value.trim();
       if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
         previewImg.src = url;
-        previewImg.onload = () => previewWrap.classList.add('active');
-        previewImg.onerror = () => previewWrap.classList.remove('active');
+        previewImg.onload = () => {
+          previewWrap.classList.add('active');
+        };
+        previewImg.onerror = () => {
+          previewWrap.classList.remove('active');
+        };
       } else {
         previewWrap.classList.remove('active');
       }
-    }, 350));
+    }, 400));
   }
 
+  // Remove preview button
   if (btnRemovePreview) {
     btnRemovePreview.addEventListener('click', () => {
-      imageInput.value = '';
+      if (imageInput) imageInput.value = '';
       previewWrap.classList.remove('active');
-      previewImg.src = '';
     });
   }
 
@@ -142,7 +187,7 @@ function setupComposer(user) {
 
     try {
       const res = await API.createPost(content, imageUrl);
-      showToast('Post published', 'success');
+      showToast('Post published successfully!', 'success');
 
       // Reset form
       textarea.value = '';
@@ -153,7 +198,7 @@ function setupComposer(user) {
       if (previewWrap) previewWrap.classList.remove('active');
       if (imageInputWrap) imageInputWrap.classList.remove('active');
 
-      // Prepend post to feed
+      // Prepend to feed
       const feedContainer = document.getElementById('feed-container');
       const emptyState = document.getElementById('empty-feed-state');
       if (emptyState) emptyState.remove();
@@ -162,7 +207,7 @@ function setupComposer(user) {
       feedContainer.insertAdjacentHTML('afterbegin', postHtml);
       attachPostEvents(res.post.id);
 
-      // Increment sidebar count consistently
+      // Increment sidebar count
       const postCountEl = document.getElementById('sidebar-post-count');
       if (postCountEl) {
         const newCount = parseInt(postCountEl.textContent || '0', 10) + 1;
@@ -177,6 +222,9 @@ function setupComposer(user) {
   });
 }
 
+// ============================================================================
+// 3. Feed Tabs (Following vs Explore All)
+// ============================================================================
 function setupTabs() {
   const tabs = document.querySelectorAll('.feed-tab');
   tabs.forEach(tab => {
@@ -189,32 +237,35 @@ function setupTabs() {
   });
 }
 
+// ============================================================================
+// 4. Load Feed Stream
+// ============================================================================
 async function loadFeed(isLoggedOut = false) {
   const feedContainer = document.getElementById('feed-container');
   if (!feedContainer) return;
 
-  // Render loading skeletons
+  // Render Skeleton Placeholders
   feedContainer.innerHTML = `
-    <div class="card post-card" style="margin-bottom: var(--space-4);">
-      <div style="display:flex; gap: var(--space-3); align-items:center; margin-bottom: var(--space-3);">
-        <div class="skeleton" style="width: 40px; height: 40px; border-radius: var(--radius-full);"></div>
+    <div class="card skeleton-card">
+      <div style="display:flex; gap: 12px; align-items:center; margin-bottom: 12px;">
+        <div class="skeleton skeleton-avatar" style="width: 42px; height: 42px;"></div>
         <div style="flex:1;">
-          <div class="skeleton" style="width: 120px; height: 14px; margin-bottom: 6px;"></div>
-          <div class="skeleton" style="width: 60px; height: 11px;"></div>
+          <div class="skeleton skeleton-text" style="width: 140px; height: 14px;"></div>
+          <div class="skeleton skeleton-text" style="width: 70px; height: 10px;"></div>
         </div>
       </div>
-      <div class="skeleton" style="width: 100%; height: 48px; margin-bottom: var(--space-3);"></div>
-      <div class="skeleton" style="width: 140px; height: 16px;"></div>
+      <div class="skeleton skeleton-text" style="width: 100%; height: 50px;"></div>
+      <div class="skeleton skeleton-text" style="width: 160px; height: 16px; margin-top: 12px;"></div>
     </div>
-    <div class="card post-card">
-      <div style="display:flex; gap: var(--space-3); align-items:center; margin-bottom: var(--space-3);">
-        <div class="skeleton" style="width: 40px; height: 40px; border-radius: var(--radius-full);"></div>
+    <div class="card skeleton-card">
+      <div style="display:flex; gap: 12px; align-items:center; margin-bottom: 12px;">
+        <div class="skeleton skeleton-avatar" style="width: 42px; height: 42px;"></div>
         <div style="flex:1;">
-          <div class="skeleton" style="width: 140px; height: 14px; margin-bottom: 6px;"></div>
-          <div class="skeleton" style="width: 80px; height: 11px;"></div>
+          <div class="skeleton skeleton-text" style="width: 120px; height: 14px;"></div>
+          <div class="skeleton skeleton-text" style="width: 60px; height: 10px;"></div>
         </div>
       </div>
-      <div class="skeleton" style="width: 100%; height: 64px;"></div>
+      <div class="skeleton skeleton-text" style="width: 100%; height: 60px;"></div>
     </div>
   `;
 
@@ -224,13 +275,14 @@ async function loadFeed(isLoggedOut = false) {
 
     if (posts.length === 0) {
       feedContainer.innerHTML = `
-        <div id="empty-feed-state" class="card empty-state">
-          <svg class="empty-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-          </svg>
-          <div class="empty-state-title">Your feed is quiet</div>
-          <p class="empty-state-desc">Follow creators or switch to "Explore All" to discover what people are sharing.</p>
-          <a href="/discover.html" class="btn btn-primary" style="margin-top: var(--space-4);">Discover Creators</a>
+        <div id="empty-feed-state">
+          ${renderEmptyState({
+            icon: 'sparkles',
+            title: 'Your feed is quiet',
+            description: 'Follow creators or explore community posts to fill your home stream.',
+            actionText: 'Explore Creators',
+            actionHref: '/discover.html'
+          })}
         </div>
       `;
       return;
@@ -239,9 +291,9 @@ async function loadFeed(isLoggedOut = false) {
     let banner = '';
     if (data.isFallback && !currentFilter && !isLoggedOut) {
       banner = `
-        <div style="padding: 10px 14px; margin-bottom: var(--space-4); background: var(--primary-subtle); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: var(--radius-md); font-size: var(--font-xs); color: var(--primary); display: flex; align-items: center; justify-content: space-between;">
-          <span>Showing latest community posts since your followed feed is quiet.</span>
-          <a href="/discover.html" style="font-weight: 600; text-decoration: underline;">Discover creators →</a>
+        <div style="padding: 10px 16px; margin-bottom: var(--space-2); background: var(--brand-gradient-subtle); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: var(--radius-lg); font-size: var(--font-xs); color: var(--primary); display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-weight: 500;">Showing trending community posts since your followed stream is quiet.</span>
+          <a href="/discover.html" style="font-weight: 700; text-decoration: underline;">Discover creators →</a>
         </div>
       `;
     }
@@ -250,15 +302,18 @@ async function loadFeed(isLoggedOut = false) {
     posts.forEach(post => attachPostEvents(post.id));
   } catch (err) {
     feedContainer.innerHTML = `
-      <div class="card empty-state">
-        <div class="empty-state-title" style="color: var(--danger);">Failed to load feed</div>
-        <p class="empty-state-desc">${escapeHTML(err.message)}</p>
-        <button onclick="loadFeed()" class="btn btn-secondary" style="margin-top: var(--space-3);">Retry</button>
+      <div class="card" style="padding: var(--space-4); text-align: center;">
+        <div style="color: var(--danger); font-size: var(--font-base); font-weight: 700; margin-bottom: 6px;">Failed to load feed</div>
+        <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-2);">${escapeHTML(err.message)}</p>
+        <button onclick="loadFeed()" class="btn btn-secondary btn-sm">Retry</button>
       </div>
     `;
   }
 }
 
+// ============================================================================
+// 5. Post Card HTML Generator
+// ============================================================================
 function createPostCardHTML(post, user) {
   const isOwner = user && user.id === post.user_id;
   const isLiked = Boolean(post.is_liked);
@@ -266,91 +321,102 @@ function createPostCardHTML(post, user) {
   const commentCount = post.comment_count || 0;
 
   return `
-    <article class="card post-card" id="post-${post.id}" data-post-id="${post.id}">
-      <div class="post-header">
-        <div class="post-author-row">
+    <article class="card post-card" id="post-${post.id}" data-post-id="${post.id}" style="margin-bottom: var(--space-2-5); padding: var(--space-3);">
+      <!-- Post Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
           <a href="/profile.html?user=${encodeURIComponent(post.username)}">
             ${renderAvatar({ username: post.username, avatar_url: post.avatar_url }, 'avatar-md')}
           </a>
           <div>
-            <div style="display: flex; align-items: baseline; gap: var(--space-1);">
-              <a href="/profile.html?user=${encodeURIComponent(post.username)}" class="post-author-name">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <a href="/profile.html?user=${encodeURIComponent(post.username)}" style="font-size: var(--font-sm); font-weight: 700; color: var(--text-main);">
                 ${escapeHTML(post.username)}
               </a>
-              <span class="post-author-handle">@${escapeHTML(post.username)}</span>
+              ${renderVerifiedBadge()}
+              <span style="font-size: 12px; color: var(--text-faint);">·</span>
+              <span style="font-size: 12px; color: var(--text-muted);" title="${formatExactDate(post.created_at)}">${timeAgo(post.created_at)}</span>
             </div>
-            <div class="post-time">${timeAgo(post.created_at)}</div>
+            <div style="font-size: 11px; color: var(--text-muted);">
+              @${escapeHTML(post.username)}
+            </div>
           </div>
         </div>
 
-        <div class="post-more-menu-wrap">
-          <button type="button" class="btn-post-more" data-more-btn="${post.id}" aria-label="More options">
-            <svg fill="currentColor" viewBox="0 0 24 24" width="16" height="16">
-              <circle cx="5" cy="12" r="2"/>
-              <circle cx="12" cy="12" r="2"/>
-              <circle cx="19" cy="12" r="2"/>
-            </svg>
+        <!-- Post Options Menu -->
+        <div class="dropdown-wrap">
+          <button type="button" class="btn-icon" data-more-btn="${post.id}" aria-label="More post options">
+            ${renderIcon('more-horizontal', '', 'width="18" height="18"')}
           </button>
-          <div class="post-menu-dropdown" id="post-menu-${post.id}">
-            <button type="button" class="dropdown-item" data-share-post="${post.id}" style="width: 100%;">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-              </svg>
+          <div class="dropdown-menu" id="post-menu-${post.id}">
+            <button type="button" class="dropdown-item" data-share-post="${post.id}">
+              ${renderIcon('link', '', 'width="16" height="16"')}
               <span>Copy link</span>
             </button>
             ${isOwner ? `
-              <button type="button" class="dropdown-item danger" data-delete-post="${post.id}" style="width: 100%;">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
+              <button type="button" class="dropdown-item danger" data-delete-post="${post.id}">
+                ${renderIcon('trash-2', '', 'width="16" height="16"')}
                 <span>Delete</span>
               </button>
-            ` : ''}
+            ` : `
+              <button type="button" class="dropdown-item" onclick="showToast('User muted', 'info')">
+                ${renderIcon('shield', '', 'width="16" height="16"')}
+                <span>Mute @${escapeHTML(post.username)}</span>
+              </button>
+            `}
           </div>
         </div>
       </div>
 
-      <div class="post-body">
+      <!-- Post Body -->
+      <div style="font-size: 15px; line-height: 1.6; color: var(--text-main); margin-bottom: 12px; word-break: break-word;">
         ${formatPostContent(post.content)}
       </div>
 
+      <!-- Post Image -->
       ${post.image_url ? `
-        <div class="post-image-container">
-          <img src="${escapeHTML(post.image_url)}" alt="Post image" class="post-image" loading="lazy" />
+        <div style="border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; max-height: 520px; background: var(--bg-surface-elevated);">
+          <img src="${escapeHTML(post.image_url)}" alt="Post media" style="width: 100%; height: auto; max-height: 520px; object-fit: cover; display: block;" loading="lazy" />
         </div>
       ` : ''}
 
-      <div class="post-footer">
-        <!-- Like Button (Optimistic UI) -->
-        <button type="button" class="post-action-btn ${isLiked ? 'liked' : ''}" data-like-btn="${post.id}">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-          <span class="like-count" id="like-count-${post.id}">${likeCount}</span>
+      <!-- Post Action Buttons -->
+      <div style="display: flex; align-items: center; gap: 16px; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
+        <!-- Like Button -->
+        <button type="button" class="post-action-btn ${isLiked ? 'liked' : ''}" data-like-btn="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: ${isLiked ? 'var(--accent-pink)' : 'var(--text-muted)'}; font-size: var(--font-xs); font-weight: 600;">
+          <span class="like-icon-wrap" style="display: inline-flex;">
+            ${renderIcon('heart', isLiked ? 'fill-pink' : '', 'width="18" height="18"')}
+          </span>
+          <span id="like-count-${post.id}">${formatCount(likeCount)}</span>
         </button>
 
-        <!-- Comment Toggle Button -->
-        <button type="button" class="post-action-btn" data-toggle-comments="${post.id}">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span class="comment-count" id="comment-count-${post.id}">${commentCount}</span>
+        <!-- Comments Button -->
+        <button type="button" class="post-action-btn" data-toggle-comments="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-xs); font-weight: 600;">
+          ${renderIcon('message-circle', '', 'width="18" height="18"')}
+          <span id="comment-count-${post.id}">${formatCount(commentCount)}</span>
         </button>
 
-        <!-- Share (Copy Link) Button -->
-        <button type="button" class="post-action-btn" data-share-post="${post.id}" title="Copy link to post">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
+        <!-- Share Button -->
+        <button type="button" class="post-action-btn" data-share-post="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-xs); font-weight: 600;">
+          ${renderIcon('share-2', '', 'width="18" height="18"')}
           <span>Share</span>
         </button>
       </div>
 
-      <!-- Comments Section -->
-      <section class="comments-section" id="comments-${post.id}">
-        <div class="comment-input-wrap">
-          <input type="text" class="comment-input" id="comment-input-${post.id}" placeholder="Write a comment..." maxlength="500" />
-          <button type="button" class="btn btn-primary btn-sm" data-submit-comment="${post.id}">Reply</button>
+      <!-- Comments Stream -->
+      <section class="comments-section" id="comments-${post.id}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-subtle);">
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input 
+            type="text" 
+            class="input-field" 
+            id="comment-input-${post.id}" 
+            placeholder="Write a thoughtful reply..." 
+            maxlength="500" 
+            style="padding: 8px 12px; font-size: var(--font-xs);"
+          />
+          <button type="button" class="btn btn-primary btn-xs" data-submit-comment="${post.id}">
+            Reply
+          </button>
         </div>
         <div class="comments-list" id="comments-list-${post.id}"></div>
       </section>
@@ -358,6 +424,9 @@ function createPostCardHTML(post, user) {
   `;
 }
 
+// ============================================================================
+// 6. Post Interactive Events
+// ============================================================================
 function attachPostEvents(postId) {
   const postCard = document.getElementById(`post-${postId}`);
   if (!postCard) return;
@@ -368,7 +437,7 @@ function attachPostEvents(postId) {
   if (moreBtn && menuDropdown) {
     moreBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      document.querySelectorAll('.post-menu-dropdown').forEach(d => {
+      document.querySelectorAll('.dropdown-menu').forEach(d => {
         if (d !== menuDropdown) d.classList.remove('show');
       });
       menuDropdown.classList.toggle('show');
@@ -383,16 +452,16 @@ function attachPostEvents(postId) {
   const shareBtns = postCard.querySelectorAll(`[data-share-post="${postId}"]`);
   shareBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const postUrl = `${window.location.origin}/profile.html#post-${postId}`;
+      const postUrl = `${window.location.origin}/#post-${postId}`;
       navigator.clipboard.writeText(postUrl).then(() => {
-        showToast('Post link copied to clipboard', 'success');
+        showToast('Link copied to clipboard!', 'success');
       }).catch(() => {
         showToast('Failed to copy link', 'error');
       });
     });
   });
 
-  // Like button (Optimistic UI with rollback)
+  // Like button with Heart Burst Animation
   const likeBtn = postCard.querySelector(`[data-like-btn="${postId}"]`);
   if (likeBtn) {
     likeBtn.addEventListener('click', async () => {
@@ -407,42 +476,59 @@ function attachPostEvents(postId) {
 
       // Optimistic update
       likeBtn.classList.toggle('liked', !wasLiked);
-      countEl.textContent = wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
+      likeBtn.style.color = !wasLiked ? 'var(--accent-pink)' : 'var(--text-muted)';
+      countEl.textContent = formatCount(wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1);
+
+      // Play heart burst animation
+      const iconWrap = likeBtn.querySelector('.like-icon-wrap');
+      if (iconWrap && !wasLiked) {
+        iconWrap.classList.add('animate-heart-burst');
+        setTimeout(() => iconWrap.classList.remove('animate-heart-burst'), 400);
+      }
 
       try {
         const res = await API.toggleLike(postId);
         likeBtn.classList.toggle('liked', res.liked);
-        countEl.textContent = res.like_count;
+        likeBtn.style.color = res.liked ? 'var(--accent-pink)' : 'var(--text-muted)';
+        countEl.textContent = formatCount(res.like_count);
       } catch (err) {
-        // Rollback on error
+        // Rollback
         likeBtn.classList.toggle('liked', wasLiked);
-        countEl.textContent = currentCount;
+        likeBtn.style.color = wasLiked ? 'var(--accent-pink)' : 'var(--text-muted)';
+        countEl.textContent = formatCount(currentCount);
         showToast(err.message, 'error');
       }
     });
   }
 
-  // Delete Post
+  // Delete Post (Replaced with Reusable Confirm Dialog)
   const deleteBtn = postCard.querySelector(`[data-delete-post="${postId}"]`);
   if (deleteBtn) {
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm('Are you sure you want to delete this post?')) return;
+    deleteBtn.addEventListener('click', () => {
+      showConfirmDialog({
+        title: 'Delete this post?',
+        message: 'This will permanently remove the post and its comments from Linkora.',
+        confirmText: 'Delete Post',
+        cancelText: 'Keep Post',
+        isDanger: true,
+        onConfirm: async () => {
+          try {
+            await API.deletePost(postId);
+            postCard.style.transition = 'all 0.2s ease';
+            postCard.style.opacity = '0';
+            postCard.style.transform = 'scale(0.96)';
+            setTimeout(() => postCard.remove(), 200);
+            showToast('Post deleted', 'info');
 
-      try {
-        await API.deletePost(postId);
-        postCard.style.transition = 'all 0.2s ease';
-        postCard.style.opacity = '0';
-        postCard.style.transform = 'scale(0.95)';
-        setTimeout(() => postCard.remove(), 200);
-        showToast('Post deleted', 'info');
-
-        const postCountEl = document.getElementById('sidebar-post-count');
-        if (postCountEl) {
-          postCountEl.textContent = Math.max(0, parseInt(postCountEl.textContent || '1', 10) - 1);
+            const postCountEl = document.getElementById('sidebar-post-count');
+            if (postCountEl) {
+              postCountEl.textContent = Math.max(0, parseInt(postCountEl.textContent || '1', 10) - 1);
+            }
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
         }
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
+      });
     });
   }
 
@@ -451,11 +537,11 @@ function attachPostEvents(postId) {
   const commentsSection = document.getElementById(`comments-${postId}`);
   if (toggleCommentsBtn && commentsSection) {
     toggleCommentsBtn.addEventListener('click', () => {
-      const isOpen = commentsSection.classList.contains('open');
-      if (isOpen) {
-        commentsSection.classList.remove('open');
+      const isVisible = commentsSection.style.display === 'block';
+      if (isVisible) {
+        commentsSection.style.display = 'none';
       } else {
-        commentsSection.classList.add('open');
+        commentsSection.style.display = 'block';
         loadComments(postId);
       }
     });
@@ -478,15 +564,16 @@ function attachPostEvents(postId) {
       try {
         const res = await API.addComment(postId, text);
         commentInput.value = '';
-
-        const commentsList = document.getElementById(`comments-list-${postId}`);
-        const commentHtml = createCommentHTML(res.comment, currentUser);
-        commentsList.insertAdjacentHTML('beforeend', commentHtml);
-        attachCommentEvents(res.comment.id);
-
+        const listEl = document.getElementById(`comments-list-${postId}`);
         const countEl = document.getElementById(`comment-count-${postId}`);
-        if (countEl) countEl.textContent = res.comment_count;
-        showToast('Comment added', 'success');
+        if (countEl) countEl.textContent = formatCount(res.comment_count);
+
+        const newCommentHtml = createCommentHTML(res.comment, currentUser);
+        if (listEl) {
+          listEl.insertAdjacentHTML('afterbegin', newCommentHtml);
+          attachCommentEvents(res.comment.id);
+        }
+        showToast('Reply posted', 'success');
       } catch (err) {
         showToast(err.message, 'error');
       } finally {
@@ -496,7 +583,7 @@ function attachPostEvents(postId) {
 
     submitCommentBtn.addEventListener('click', handleComment);
     commentInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleComment();
       }
@@ -504,18 +591,21 @@ function attachPostEvents(postId) {
   }
 }
 
+// ============================================================================
+// 7. Comments Handling
+// ============================================================================
 async function loadComments(postId) {
   const listEl = document.getElementById(`comments-list-${postId}`);
   if (!listEl) return;
 
-  listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: var(--space-2) 0;">Loading comments...</div>';
+  listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: 8px 0;">Loading comments...</div>';
 
   try {
     const data = await API.getComments(postId);
     const comments = data.comments || [];
 
     if (comments.length === 0) {
-      listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: var(--space-2) 0;">No comments yet. Be the first to reply.</div>';
+      listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: 8px 0;">No replies yet. Be the first to start the conversation.</div>';
       return;
     }
 
@@ -530,27 +620,27 @@ function createCommentHTML(comment, user) {
   const isOwner = user && user.id === comment.user_id;
 
   return `
-    <div class="comment-item" id="comment-${comment.id}">
+    <div class="comment-item" id="comment-${comment.id}" style="display: flex; gap: 10px; margin-bottom: 8px; padding: 6px 0;">
       <a href="/profile.html?user=${encodeURIComponent(comment.username)}">
         ${renderAvatar({ username: comment.username, avatar_url: comment.avatar_url }, 'avatar-xs')}
       </a>
-      <div class="comment-content">
-        <div class="comment-header">
-          <a href="/profile.html?user=${encodeURIComponent(comment.username)}" class="comment-author">
-            ${escapeHTML(comment.username)}
-          </a>
-          <div style="display: flex; align-items: center; gap: var(--space-2);">
-            <span class="comment-time">${timeAgo(comment.created_at)}</span>
-            ${isOwner ? `
-              <button type="button" class="btn-comment-delete" data-delete-comment="${comment.id}" title="Delete comment">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12" height="12">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            ` : ''}
+      <div style="flex: 1; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-md);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <a href="/profile.html?user=${encodeURIComponent(comment.username)}" style="font-size: var(--font-xs); font-weight: 700; color: var(--text-main);">
+              ${escapeHTML(comment.username)}
+            </a>
+            <span style="font-size: 11px; color: var(--text-faint);">${timeAgo(comment.created_at)}</span>
           </div>
+          ${isOwner ? `
+            <button type="button" class="btn-icon" data-delete-comment="${comment.id}" title="Delete comment" style="width: 20px; height: 20px;">
+              ${renderIcon('x', '', 'width="12" height="12"')}
+            </button>
+          ` : ''}
         </div>
-        <div class="comment-text">${escapeHTML(comment.content)}</div>
+        <div style="font-size: var(--font-xs); color: var(--text-main); word-break: break-word;">
+          ${escapeHTML(comment.content)}
+        </div>
       </div>
     </div>
   `;
@@ -562,128 +652,26 @@ function attachCommentEvents(commentId) {
 
   const delBtn = item.querySelector(`[data-delete-comment="${commentId}"]`);
   if (delBtn) {
-    delBtn.addEventListener('click', async () => {
-      try {
-        const res = await API.deleteComment(commentId);
-        item.remove();
-        showToast('Comment deleted', 'info');
+    delBtn.addEventListener('click', () => {
+      showConfirmDialog({
+        title: 'Delete reply?',
+        message: 'This will remove your reply permanently.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        isDanger: true,
+        onConfirm: async () => {
+          try {
+            const res = await API.deleteComment(commentId);
+            item.remove();
+            showToast('Comment deleted', 'info');
 
-        const countEl = document.getElementById(`comment-count-${res.post_id}`);
-        if (countEl) countEl.textContent = res.comment_count;
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
-}
-
-async function setupSidebars(user) {
-  // Left sidebar user mini card
-  const leftMount = document.getElementById('left-sidebar-mount');
-  if (leftMount && user) {
-    leftMount.innerHTML = `
-      <div class="card user-mini-card">
-        <div class="mini-avatar-wrap">
-          ${renderAvatar(user, 'avatar-lg')}
-        </div>
-        <div class="mini-user-name">${escapeHTML(user.username)}</div>
-        <div class="mini-user-handle">@${escapeHTML(user.username)}</div>
-        <p class="mini-bio">
-          ${user.bio ? escapeHTML(user.bio) : '<em>No bio yet</em>'}
-        </p>
-
-        <div class="mini-stats">
-          <div>
-            <div class="mini-stat-val" id="sidebar-post-count">${user.post_count || 0}</div>
-            <div class="mini-stat-lbl">${user.post_count === 1 ? 'post' : 'posts'}</div>
-          </div>
-          <div>
-            <div class="mini-stat-val" id="sidebar-follower-count">${user.follower_count || 0}</div>
-            <div class="mini-stat-lbl">${user.follower_count === 1 ? 'follower' : 'followers'}</div>
-          </div>
-          <div>
-            <div class="mini-stat-val" id="sidebar-following-count">${user.following_count || 0}</div>
-            <div class="mini-stat-lbl">following</div>
-          </div>
-        </div>
-
-        <a href="/profile.html?user=${encodeURIComponent(user.username)}" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: var(--space-4);">
-          View Profile
-        </a>
-      </div>
-    `;
-  }
-
-  // Right sidebar: Suggested Creators (must not include self or people already followed)
-  const rightMount = document.getElementById('suggested-users-mount');
-  if (rightMount) {
-    try {
-      const data = await API.getSuggestedUsers();
-      const suggestions = data.users || [];
-
-      if (suggestions.length === 0) {
-        rightMount.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: var(--space-2) 0;">No suggestions right now.</div>';
-        return;
-      }
-
-      rightMount.innerHTML = suggestions.map(u => `
-        <div class="suggestion-item" id="suggested-user-${u.id}">
-          <div class="suggestion-user">
-            <a href="/profile.html?user=${encodeURIComponent(u.username)}">
-              ${renderAvatar(u, 'avatar-sm')}
-            </a>
-            <div class="suggestion-meta">
-              <a href="/profile.html?user=${encodeURIComponent(u.username)}" class="suggestion-name">
-                ${escapeHTML(u.username)}
-              </a>
-              <span class="suggestion-followers">${u.follower_count || 0} ${u.follower_count === 1 ? 'follower' : 'followers'}</span>
-            </div>
-          </div>
-          <button type="button" class="btn btn-follow btn-primary" data-sidebar-follow="${u.id}">
-            <span class="follow-text">Follow</span>
-          </button>
-        </div>
-      `).join('');
-
-      suggestions.forEach(u => {
-        const btn = rightMount.querySelector(`[data-sidebar-follow="${u.id}"]`);
-        if (btn) {
-          btn.addEventListener('click', async () => {
-            btn.disabled = true;
-            // Optimistic update
-            btn.className = 'btn btn-follow following';
-            btn.innerHTML = '<span class="follow-text">Following</span>';
-
-            try {
-              const res = await API.toggleFollow(u.id);
-              if (res.following) {
-                btn.className = 'btn btn-follow following';
-                btn.innerHTML = '<span class="follow-text">Following</span>';
-              } else {
-                btn.className = 'btn btn-follow btn-primary';
-                btn.innerHTML = '<span class="follow-text">Follow</span>';
-              }
-
-              // Update sidebar following count consistently
-              const myFollowingEl = document.getElementById('sidebar-following-count');
-              if (myFollowingEl && res.my_following_count !== undefined) {
-                myFollowingEl.textContent = res.my_following_count;
-              }
-
-              showToast(res.message, 'success');
-            } catch (err) {
-              // Rollback
-              btn.className = 'btn btn-follow btn-primary';
-              btn.innerHTML = '<span class="follow-text">Follow</span>';
-              showToast(err.message, 'error');
-            } finally {
-              btn.disabled = false;
-            }
-          });
+            const countEl = document.getElementById(`comment-count-${res.post_id}`);
+            if (countEl) countEl.textContent = formatCount(res.comment_count);
+          } catch (err) {
+            showToast(err.message, 'error');
+          }
         }
       });
-    } catch (e) {
-      rightMount.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint);">Could not load suggestions</div>';
-    }
+    });
   }
 }
