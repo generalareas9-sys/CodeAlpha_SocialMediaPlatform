@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In · Linkora</title>
   <meta name="description" content="Connect. Share. Grow. Sign in to your Linkora account.">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#F7F7FB">
 
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -16,7 +16,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Sign In · Linkora">
-  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:description" content="Connect. Share. Grow. The vibrant social network for creators.">
   <meta property="og:image" content="/assets/og-image.png">
 
   <!-- Styles -->
@@ -26,70 +26,125 @@
   <!-- Global Shared Navbar Mount -->
   <div id="navbar-mount"></div>
 
-  <main class="auth-wrapper">
-    <div class="card auth-card">
-      <div class="auth-header">
-        <a href="/" title="Linkora">
-          <img src="/assets/logo.svg" alt="Linkora" class="auth-logo" />
+  <!-- Split Auth Layout -->
+  <main class="auth-split-wrapper">
+    <!-- Left Side: Brand Panel with Gradient & Highlights Carousel -->
+    <div class="auth-brand-panel">
+      <div class="auth-brand-decor"></div>
+
+      <div class="auth-brand-header">
+        <a href="/" title="Linkora Home">
+          <img src="/assets/logo-light.svg" alt="Linkora" class="auth-brand-logo" />
         </a>
-        <h1 class="auth-title">Welcome back</h1>
-        <p class="auth-subtitle">Connect. Share. Grow.</p>
       </div>
 
-      <!-- Inline Error Message -->
-      <div class="input-error-msg" id="login-error-msg" style="margin-bottom: var(--space-4); text-align: center;"></div>
-
-      <form id="login-form">
-        <div class="form-group">
-          <label class="form-label" for="login-identifier">Username or Email</label>
-          <input 
-            type="text" 
-            id="login-identifier" 
-            class="input-field" 
-            placeholder="e.g. alex_dev or alex@codealpha.dev" 
-            required 
-            autocomplete="username"
-          />
+      <!-- Feature Highlights Carousel -->
+      <div class="auth-carousel-container">
+        <!-- Slide 1 -->
+        <div class="auth-carousel-slide active" data-slide="0">
+          <h2 class="auth-carousel-title">Connect with builders & thinkers.</h2>
+          <p class="auth-carousel-desc">Follow inspiring creators, share daily progress, and cultivate a community of peers.</p>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="login-password">Password</label>
-          <div class="password-input-wrap">
+        <!-- Slide 2 -->
+        <div class="auth-carousel-slide" data-slide="1">
+          <h2 class="auth-carousel-title">Share rich multimedia stories.</h2>
+          <p class="auth-carousel-desc">From 24-hour visual stories to deep multi-image posts and polls with real-time feedback.</p>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="auth-carousel-slide" data-slide="2">
+          <h2 class="auth-carousel-title">Real-time interactions everywhere.</h2>
+          <p class="auth-carousel-desc">Instant direct messages, live notifications, and real-time feed updates powered by Socket.io.</p>
+        </div>
+
+        <!-- Carousel Indicators -->
+        <div class="auth-carousel-dots">
+          <div class="auth-carousel-dot active" data-index="0" aria-label="Slide 1"></div>
+          <div class="auth-carousel-dot" data-index="1" aria-label="Slide 2"></div>
+          <div class="auth-carousel-dot" data-index="2" aria-label="Slide 3"></div>
+        </div>
+      </div>
+
+      <div class="auth-brand-footer">
+        <div style="font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">CONNECT. SHARE. GROW.</div>
+        <div>© 2026 Linkora, Inc. All rights reserved.</div>
+      </div>
+    </div>
+
+    <!-- Right Side: Clean Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-card-modern">
+        <div class="auth-header" style="margin-bottom: var(--space-3);">
+          <h1 class="auth-title">Welcome back</h1>
+          <p class="auth-subtitle">Sign in with your username or email to continue</p>
+        </div>
+
+        <!-- Inline Error Message -->
+        <div class="input-error-msg" id="login-error-msg" style="margin-bottom: var(--space-2); text-align: center;"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label class="form-label" for="login-identifier">Username or Email</label>
             <input 
-              type="password" 
-              id="login-password" 
+              type="text" 
+              id="login-identifier" 
               class="input-field" 
-              placeholder="••••••••" 
+              placeholder="alex_dev or alex@codealpha.dev" 
               required 
-              autocomplete="current-password"
+              autocomplete="username"
             />
-            <button type="button" class="btn-toggle-password" data-target="login-password" aria-label="Show password">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
+          </div>
+
+          <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label" for="login-password">Password</label>
+            </div>
+            <div class="password-input-wrap">
+              <input 
+                type="password" 
+                id="login-password" 
+                class="input-field" 
+                placeholder="••••••••" 
+                required 
+                autocomplete="current-password"
+              />
+              <button type="button" class="btn-toggle-password" data-target="login-password" aria-label="Show password">
+                <svg class="lucide lucide-eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btn-login-submit" style="margin-top: var(--space-2);">
+            Sign In
+          </button>
+        </form>
+
+        <!-- Social-style "Continue as demo user" secondary section -->
+        <div class="demo-user-section">
+          <span class="demo-user-label">Explore instantly as a demo user:</span>
+          <div class="demo-chips-grid">
+            <button type="button" class="demo-chip-btn" data-username="alex_dev">
+              <span class="avatar avatar-xs" style="background-color: #6366F1; color: white;">A</span>
+              <span>alex_dev</span>
+            </button>
+            <button type="button" class="demo-chip-btn" data-username="sarah_design">
+              <span class="avatar avatar-xs" style="background-color: #EC4899; color: white;">S</span>
+              <span>sarah_design</span>
+            </button>
+            <button type="button" class="demo-chip-btn" data-username="marcus_tech">
+              <span class="avatar avatar-xs" style="background-color: #10B981; color: white;">M</span>
+              <span>marcus_tech</span>
             </button>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="btn-login-submit" style="width: 100%; margin-top: var(--space-2); padding: 10px;">
-          Sign In
-        </button>
-      </form>
-
-      <!-- Secondary Demo Users Box -->
-      <div class="demo-users-box">
-        <div class="demo-title">Try a demo account</div>
-        <div class="demo-chips">
-          <button type="button" class="demo-chip" data-username="alex_dev">alex_dev</button>
-          <button type="button" class="demo-chip" data-username="sarah_design">sarah_design</button>
-          <button type="button" class="demo-chip" data-username="marcus_tech">marcus_tech</button>
-        </div>
+        <p style="text-align: center; margin-top: var(--space-3); font-size: var(--font-xs); color: var(--text-muted);">
+          Don't have an account? <a href="/register.html" style="color: var(--primary); font-weight: 600;">Create an account</a>
+        </p>
       </div>
-
-      <p style="text-align: center; margin-top: var(--space-6); font-size: var(--font-xs); color: var(--text-muted);">
-        Don't have an account? <a href="/register.html" style="color: var(--primary); font-weight: 500;">Create an account</a>
-      </p>
     </div>
   </main>
 
