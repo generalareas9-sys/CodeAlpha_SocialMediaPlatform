@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover · Linkora</title>
+  <meta name="description" content="Connect. Share. Grow. Discover creators, developers, and designers on Linkora.">
+  <meta name="theme-color" content="#0F172A">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Discover · Linkora">
+  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:image" content="/assets/og-image.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+  <!-- Shared Navbar -->
+  <div id="navbar-mount"></div>
+
+  <div class="main-wrapper">
+    <main class="app-container single-col" style="max-width: 960px;">
+      <!-- Discover Hero & Search -->
+      <section class="card discover-hero" aria-label="Search Creators">
+        <h1 class="discover-title">Discover Creators</h1>
+        <p class="discover-subtitle">Find engineers, designers, and thinkers to grow your network</p>
+
+        <div class="search-box-wrap">
+          <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input 
+            type="text" 
+            id="search-users-input" 
+            class="search-input" 
+            placeholder="Search by username or bio (e.g. dev, design, cloud)..." 
+            autocomplete="off"
+          />
+        </div>
+      </section>
+
+      <!-- Creators Grid -->
+      <section class="discover-grid" id="discover-grid" aria-label="Creators List"></section>
+    </main>
+  </div>
+
+  <!-- Shared Footer -->
+  <div id="footer-mount"></div>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/discover.js"></script>
+  <script src="/js/nav.js"></script>
+</body>
+</html>
