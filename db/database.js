@@ -20,11 +20,47 @@ const db = new Database(dbPath);
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
-// Execute schema to ensure tables and indexes are ready
+// Safely ensure new columns on existing tables before schema load
+function ensureColumns() {
+  try {
+    const postCols = db.prepare("PRAGMA table_info(posts)").all().map(c => c.name);
+    if (postCols.length > 0) {
+      if (!postCols.includes('visibility')) {
+        db.exec("ALTER TABLE posts ADD COLUMN visibility TEXT DEFAULT 'public'");
+      }
+      if (!postCols.includes('edited_at')) {
+        db.exec("ALTER TABLE posts ADD COLUMN edited_at DATETIME DEFAULT NULL");
+      }
+      if (!postCols.includes('is_pinned')) {
+        db.exec("ALTER TABLE posts ADD COLUMN is_pinned INTEGER DEFAULT 0");
+      }
+    }
+  } catch (e) {
+    // Table might not exist yet, schema.sql will create it
+  }
+
+  try {
+    const commentCols = db.prepare("PRAGMA table_info(comments)").all().map(c => c.name);
+    if (commentCols.length > 0) {
+      if (!commentCols.includes('parent_id')) {
+        db.exec("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT NULL REFERENCES comments(id) ON DELETE CASCADE");
+      }
+    }
+  } catch (e) {
+    // Table might not exist yet
+  }
+}
+
+ensureColumns();
+
+// Execute schema to ensure all tables and indexes are ready
 const schemaPath = path.join(__dirname, 'schema.sql');
 if (fs.existsSync(schemaPath)) {
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');
   db.exec(schemaSql);
 }
+
+// Re-verify columns after schema
+ensureColumns();
 
 module.exports = db;
