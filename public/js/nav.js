@@ -532,7 +532,6 @@ async function loadTrendingWidget() {
   const mount = document.getElementById('trending-tags-mount');
   if (!mount) return;
 
-  // Curated active hashtags
   const defaultTags = [
     { tag: 'buildinpublic', count: 142 },
     { tag: 'designsystems', count: 89 },
@@ -541,15 +540,29 @@ async function loadTrendingWidget() {
     { tag: 'creators', count: 37 }
   ];
 
-  mount.innerHTML = defaultTags.map(item => `
-    <a href="/discover.html?search=%23${item.tag}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: var(--radius-md); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-      <div>
-        <div style="font-size: var(--font-xs); color: var(--text-faint);">Trending in Tech</div>
-        <div style="font-size: var(--font-sm); font-weight: 700; color: var(--text-main);">#${item.tag}</div>
-      </div>
-      <span style="font-size: 11px; color: var(--text-muted);">${item.count} posts</span>
-    </a>
-  `).join('');
+  try {
+    const res = await API.getTrendingHashtags();
+    const tags = (res && res.tags && res.tags.length > 0) ? res.tags : defaultTags;
+    mount.innerHTML = tags.slice(0, 5).map(item => `
+      <a href="/discover.html?search=%23${encodeURIComponent(item.tag)}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: var(--radius-md); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+        <div>
+          <div style="font-size: var(--font-xs); color: var(--text-faint);">Trending in Tech</div>
+          <div style="font-size: var(--font-sm); font-weight: 700; color: var(--text-main);">#${escapeHTML(item.tag)}</div>
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);">${item.count} posts</span>
+      </a>
+    `).join('');
+  } catch (err) {
+    mount.innerHTML = defaultTags.map(item => `
+      <a href="/discover.html?search=%23${encodeURIComponent(item.tag)}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: var(--radius-md); transition: background var(--transition-fast);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+        <div>
+          <div style="font-size: var(--font-xs); color: var(--text-faint);">Trending in Tech</div>
+          <div style="font-size: var(--font-sm); font-weight: 700; color: var(--text-main);">#${escapeHTML(item.tag)}</div>
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);">${item.count} posts</span>
+      </a>
+    `).join('');
+  }
 }
 
 async function loadSuggestedUsersWidget() {
@@ -557,26 +570,26 @@ async function loadSuggestedUsersWidget() {
   if (!mount) return;
 
   try {
-    const res = await API.discoverUsers();
+    const res = await API.getSuggestedUsers();
     let users = res.users || [];
 
-    // Filter out myself
+    // Filter out myself and anyone I already follow
     if (currentUser) {
-      users = users.filter(u => u.id !== currentUser.id && u.username !== currentUser.username);
+      users = users.filter(u => u.id !== currentUser.id && u.username !== currentUser.username && !u.is_following);
     }
 
     if (users.length === 0) {
       mount.innerHTML = `
-        <div style="font-size: var(--font-xs); color: var(--text-muted); padding: 8px 0;">
-          No suggested creators at this moment.
+        <div style="font-size: var(--font-xs); color: var(--text-muted); padding: 8px 0; text-align: center;">
+          You're all caught up! No new suggestions.
         </div>
       `;
       return;
     }
 
-    mount.innerHTML = users.slice(0, 3).map(u => `
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0;">
-        <a href="/profile.html?user=${encodeURIComponent(u.username)}" style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+    mount.innerHTML = users.slice(0, 4).map(u => `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0;" id="widget-suggested-user-${u.id}">
+        <a href="/profile.html?user=${encodeURIComponent(u.username)}" style="display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none;">
           ${renderAvatar(u, 'avatar-sm')}
           <div style="min-width: 0;">
             <div style="font-size: var(--font-sm); font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 2px;">
@@ -602,23 +615,31 @@ async function loadSuggestedUsersWidget() {
           window.location.href = '/login.html';
           return;
         }
+        const userId = btn.getAttribute('data-user-id');
         const username = btn.getAttribute('data-username');
         btn.disabled = true;
         try {
-          await API.followUser(username);
-          btn.textContent = 'Following';
-          btn.classList.remove('btn-secondary');
-          btn.classList.add('btn-ghost');
-          showToast(`Following @${username}`, 'success');
+          const result = await API.toggleFollow(userId);
+          if (result.following) {
+            btn.textContent = 'Following';
+            btn.classList.remove('btn-secondary');
+            btn.classList.add('btn-ghost');
+            showToast(`Following @${username}`, 'success');
+          } else {
+            btn.textContent = 'Follow';
+            btn.classList.remove('btn-ghost');
+            btn.classList.add('btn-secondary');
+          }
         } catch (err) {
           showToast(err.message, 'error');
+        } finally {
           btn.disabled = false;
         }
       });
     });
   } catch (err) {
     mount.innerHTML = `
-      <div style="font-size: var(--font-xs); color: var(--text-faint);">
+      <div style="font-size: var(--font-xs); color: var(--text-faint); padding: 8px 0; text-align: center;">
         Unable to load suggestions.
       </div>
     `;
@@ -699,7 +720,7 @@ function renderFooter() {
     <div style="max-width: var(--app-max-width); margin: 0 auto; padding: var(--space-4) var(--space-2); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); gap: var(--space-2);">
       <div style="display: flex; align-items: center; gap: 12px;">
         <a href="/" title="Linkora">
-          <img src="${logoSrc}" alt="Linkora" style="height: 28px;" />
+          <img src="${logoSrc}" alt="Linkora" class="brand-logo-img" style="height: 28px;" />
         </a>
         <span style="font-size: var(--font-xs); color: var(--text-muted);">Connect. Share. Grow.</span>
       </div>
