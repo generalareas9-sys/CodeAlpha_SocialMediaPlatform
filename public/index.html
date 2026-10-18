@@ -39,53 +39,116 @@
 
       <!-- Center Column: Post Composer & Feed Stream -->
       <section class="main-feed-column" aria-label="Main Stream">
+        <!-- Floating "New Posts" Pill (Socket.io) -->
+        <div id="new-posts-pill-mount" style="text-align: center; display: none;">
+          <button type="button" class="new-posts-pill" id="btn-new-posts-pill">
+            <svg class="lucide lucide-arrow-up" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
+              <path d="m5 12 7-7 7 7M12 19V5"/>
+            </svg>
+            <span id="new-posts-count-text">New posts</span>
+          </button>
+        </div>
+
         <!-- Post Composer Card -->
-        <div class="card composer-card" id="post-composer" style="padding: var(--space-3);">
-          <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+        <div class="card composer-card composer-drop-zone" id="post-composer" style="padding: var(--space-3); position: relative;">
+          <!-- Visibility Selector Row -->
+          <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 8px;">
+            <select id="post-visibility" class="tab-segmented-btn" style="border: 1px solid var(--border); background: var(--bg-surface-elevated); cursor: pointer; padding: 4px 10px; font-size: 11px;">
+              <option value="public">🌐 Public</option>
+              <option value="followers">🔒 Followers Only</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-bottom: 8px;">
             <div id="composer-avatar-mount"></div>
-            <div style="flex: 1;">
+            <div style="flex: 1; position: relative;">
               <textarea 
                 id="post-content" 
                 class="textarea-field" 
-                placeholder="What are you building or thinking about today?" 
+                placeholder="What are you building or thinking about today? Type #tag or @mention..." 
                 maxlength="280"
                 rows="3"
                 style="resize: none;"
               ></textarea>
 
-              <!-- Image URL Input (collapsible) -->
-              <div id="image-input-wrap" style="display: none; margin-top: 10px;">
-                <input 
-                  type="url" 
-                  id="post-image-url" 
-                  class="input-field" 
-                  placeholder="Paste an image URL (PNG, JPG, WebP)..." 
-                />
-              </div>
+              <!-- Mention / Hashtag Autocomplete Dropdown -->
+              <div class="autocomplete-dropdown" id="composer-autocomplete-dropdown"></div>
 
-              <!-- Image Preview Container -->
-              <div id="image-preview-wrap" style="display: none; position: relative; margin-top: 10px; border-radius: var(--radius-lg); overflow: hidden; max-height: 320px; background: var(--bg-surface-elevated);">
-                <img id="image-preview" alt="Preview image" style="width: 100%; height: auto; max-height: 320px; object-fit: cover; display: block;" />
-                <button type="button" id="btn-remove-preview" class="btn-icon" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; width: 28px; height: 28px;" title="Remove image">
-                  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M18 6 6 18M6 6l12 12"/>
-                  </svg>
-                </button>
+              <!-- Multi-Image Upload Previews Grid -->
+              <div class="composer-previews-grid" id="composer-previews-grid" style="display: none;"></div>
+
+              <!-- Poll Creation Box (Collapsible) -->
+              <div class="composer-poll-box" id="composer-poll-box" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="font-size: var(--font-xs); font-weight: 700; color: var(--text-main);">Create a Poll</span>
+                  <button type="button" class="btn-icon" id="btn-close-poll" style="width: 20px; height: 20px;" title="Cancel poll">✕</button>
+                </div>
+                <input type="text" id="poll-question-input" class="input-field" placeholder="Ask a question (optional)..." style="margin-bottom: 8px; font-size: var(--font-xs);" />
+                
+                <div id="poll-options-inputs">
+                  <div class="composer-poll-option-row">
+                    <input type="text" class="input-field poll-opt-input" placeholder="Option 1" maxlength="50" style="font-size: var(--font-xs);" />
+                  </div>
+                  <div class="composer-poll-option-row">
+                    <input type="text" class="input-field poll-opt-input" placeholder="Option 2" maxlength="50" style="font-size: var(--font-xs);" />
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                  <button type="button" class="btn btn-secondary btn-xs" id="btn-add-poll-option">+ Add Option</button>
+                  <select id="poll-duration-select" class="tab-segmented-btn" style="border: 1px solid var(--border); background: var(--bg-surface); padding: 4px 8px; font-size: 11px;">
+                    <option value="24">1 day</option>
+                    <option value="72">3 days</option>
+                    <option value="168">7 days</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
 
-          <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <button type="button" class="btn-icon" id="btn-toggle-image" title="Attach image URL">
+          <!-- Hidden File Input for Multi-Images (Up to 4) -->
+          <input type="file" id="composer-file-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display: none;" />
+
+          <!-- Composer Actions Footer -->
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-subtle); position: relative;">
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <!-- Upload Image Button -->
+              <button type="button" class="btn-icon" id="btn-upload-image" title="Attach up to 4 images">
                 <svg class="lucide lucide-image" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" width="18" height="18">
                   <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                 </svg>
               </button>
+
+              <!-- Poll Toggle Button -->
+              <button type="button" class="btn-icon" id="btn-toggle-poll" title="Create a poll">
+                <svg class="lucide lucide-bar-chart-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" width="18" height="18">
+                  <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
+                </svg>
+              </button>
+
+              <!-- Emoji Picker Toggle Button -->
+              <div style="position: relative;">
+                <button type="button" class="btn-icon" id="btn-toggle-emoji" title="Insert emoji">
+                  <svg class="lucide lucide-smile" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" width="18" height="18">
+                    <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
+                  </svg>
+                </button>
+                <!-- Floating Emoji Picker Popover -->
+                <div class="emoji-picker-popover" id="composer-emoji-popover"></div>
+              </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span id="char-counter" style="font-size: var(--font-xs); color: var(--text-muted); font-weight: 500;">0/280</span>
+            <!-- Ring Counter & Submit Button -->
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <!-- 280-Char SVG Circular Ring -->
+              <div class="char-ring-wrap" id="composer-char-ring">
+                <svg class="char-ring-svg" viewBox="0 0 28 28">
+                  <circle class="char-ring-bg" cx="14" cy="14" r="11" />
+                  <circle class="char-ring-progress" cx="14" cy="14" r="11" />
+                </svg>
+                <span class="char-ring-number" style="display: none;"></span>
+              </div>
+
               <button type="button" class="btn btn-primary btn-sm" id="btn-submit-post" disabled>
                 Post
               </button>
@@ -98,12 +161,15 @@
           <h1 class="feed-title" style="font-size: var(--font-xl); font-weight: 800;">Home Feed</h1>
           <div class="tabs-segmented feed-tabs">
             <button type="button" class="tab-segmented-btn active feed-tab" data-filter="">Following</button>
-            <button type="button" class="tab-segmented-btn feed-tab" data-filter="all">Explore All</button>
+            <button type="button" class="tab-segmented-btn feed-tab" data-filter="for_you">For You</button>
           </div>
         </div>
 
         <!-- Posts Container -->
         <div id="feed-container"></div>
+
+        <!-- Infinite Scroll Sentinel & Skeleton Indicator -->
+        <div id="feed-infinite-sentinel" style="height: 40px; margin-top: 10px;"></div>
       </section>
 
       <!-- Right Column: Trending Hashtags & Who to Follow (Desktop) -->
@@ -117,6 +183,7 @@
   <div id="footer-mount"></div>
 
   <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/utils.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/feed.js"></script>
