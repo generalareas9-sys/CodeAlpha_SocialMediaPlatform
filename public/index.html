@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed · Linkora</title>
+  <meta name="description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta name="theme-color" content="#0F172A">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Feed · Linkora">
+  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:image" content="/assets/og-image.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+  <!-- Shared Navbar -->
+  <div id="navbar-mount"></div>
+
+  <!-- Landing Hero for Logged-Out Visitors -->
+  <div class="main-wrapper">
+    <div id="landing-hero-mount" style="max-width: 1200px; margin: var(--space-4) auto 0 auto; padding: 0 var(--space-4); display: none;"></div>
+
+    <!-- Main Feed App Layout -->
+    <main class="app-container">
+      <!-- Left Column: User Profile Card -->
+      <aside class="left-sidebar sidebar-sticky" id="left-sidebar-mount" aria-label="Profile Summary">
+        <!-- Rendered dynamically -->
+      </aside>
+
+      <!-- Center Column: Post Composer & Stream -->
+      <section class="main-feed-column" aria-label="Main Feed">
+        <!-- Post Composer -->
+        <div class="card composer-card" id="post-composer">
+          <div class="composer-header">
+            <div id="composer-avatar-mount"></div>
+            <div class="composer-input-area">
+              <textarea 
+                id="post-content" 
+                class="composer-textarea" 
+                placeholder="What are you building or thinking about today?" 
+                maxlength="280"
+                rows="3"
+              ></textarea>
+
+              <!-- Optional Image URL Input -->
+              <div class="composer-image-input-wrap" id="image-input-wrap">
+                <input 
+                  type="url" 
+                  id="post-image-url" 
+                  class="input-field" 
+                  placeholder="Paste an image URL..." 
+                />
+              </div>
+
+              <!-- Preview Image -->
+              <div class="composer-preview-img-wrap" id="image-preview-wrap">
+                <img id="image-preview" class="composer-preview-img" alt="Post preview image" />
+                <button type="button" class="composer-preview-remove" id="btn-remove-preview" title="Remove image">×</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="composer-footer">
+            <div class="composer-actions">
+              <button type="button" class="btn-icon-composer" id="btn-toggle-image" title="Attach image link">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span>Image</span>
+              </button>
+            </div>
+
+            <div class="composer-status">
+              <span class="char-counter" id="char-counter">0/280</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-submit-post" disabled>
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feed Stream Header -->
+        <div class="feed-header">
+          <h1 class="feed-title">Home Feed</h1>
+          <div class="feed-tabs">
+            <button type="button" class="feed-tab active" data-filter="">Following</button>
+            <button type="button" class="feed-tab" data-filter="all">Explore All</button>
+          </div>
+        </div>
+
+        <!-- Posts Container -->
+        <div id="feed-container"></div>
+      </section>
+
+      <!-- Right Column: Suggested Creators -->
+      <aside class="right-sidebar sidebar-sticky" aria-label="Suggested Creators">
+        <div class="card" style="padding: var(--space-6);">
+          <h2 class="sidebar-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16" height="16" style="color: var(--primary);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Suggested Creators</span>
+          </h2>
+          <div class="suggestions-list" id="suggested-users-mount"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Shared Footer -->
+  <div id="footer-mount"></div>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/feed.js"></script>
+  <script src="/js/nav.js"></script>
+</body>
+</html>
