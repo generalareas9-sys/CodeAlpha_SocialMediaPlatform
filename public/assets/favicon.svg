@@ -1,5 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#4F46E5"/>
-  <path d="M11 8 C11 6.89 11.89 6 13 6 C14.11 6 15 6.89 15 8 V16 C15 16.55 15.45 17 16 17 H22 C23.11 17 24 17.89 24 19 C24 20.11 23.11 21 22 21 H16 C12.68 21 11 18.5 11 16 Z" fill="#FFFFFF"/>
-  <circle cx="21" cy="10" r="2.2" fill="#C7D2FE"/>
+  <defs>
+    <linearGradient id="linkoraFavGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(1, 1) scale(0.3)">
+    <rect x="18" y="10" width="24" height="52" rx="12" fill="url(#linkoraFavGrad)"/>
+    <rect x="18" y="50" width="60" height="24" rx="12" fill="url(#linkoraFavGrad)"/>
+    <circle cx="30" cy="22" r="5" fill="#FFFFFF"/>
+    <circle cx="66" cy="62" r="5" fill="#FFFFFF"/>
+    <circle cx="66" cy="30" r="9" fill="url(#linkoraFavGrad)"/>
+    <circle cx="66" cy="30" r="3.5" fill="#FFFFFF"/>
+  </g>
 </svg>
