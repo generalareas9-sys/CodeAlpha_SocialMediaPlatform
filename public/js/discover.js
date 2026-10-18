@@ -54,12 +54,14 @@ async function loadUsers(search = '') {
 
     if (users.length === 0) {
       grid.innerHTML = `
-        <div style="grid-column: 1 / -1;" class="card empty-state">
-          <svg class="empty-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <div class="empty-state-title">No creators found</div>
-          <p class="empty-state-desc">We couldn't find anyone matching "${escapeHTML(search)}". Try searching for different keywords or explore suggested accounts.</p>
+        <div style="grid-column: 1 / -1;">
+          ${renderEmptyState({
+            icon: 'users',
+            title: 'No creators found',
+            description: `We could not find anyone matching "${escapeHTML(search)}". Try searching for different keywords or explore suggested accounts.`,
+            actionText: 'Clear search',
+            actionHref: '/discover.html'
+          })}
         </div>
       `;
       return;
@@ -69,9 +71,14 @@ async function loadUsers(search = '') {
     users.forEach(u => attachDiscoverUserEvents(u.id));
   } catch (err) {
     grid.innerHTML = `
-      <div style="grid-column: 1 / -1;" class="card empty-state">
-        <div class="empty-state-title" style="color: var(--danger);">Error loading creators</div>
-        <p class="empty-state-desc">${escapeHTML(err.message)}</p>
+      <div style="grid-column: 1 / -1;">
+        ${renderEmptyState({
+          icon: 'alert-triangle',
+          title: 'Error loading creators',
+          description: escapeHTML(err.message),
+          actionText: 'Retry',
+          actionHref: '/discover.html'
+        })}
       </div>
     `;
   }
@@ -85,20 +92,21 @@ function createUserCardHTML(user, me) {
   const postCount = user.post_count || 0;
 
   return `
-    <div class="card discover-card" id="user-card-${user.id}">
-      <a href="/profile.html?user=${encodeURIComponent(user.username)}">
-        ${renderAvatar(user, 'avatar-lg')}
+    <div class="card discover-card" id="user-card-${user.id}" style="padding: var(--space-4); text-align: center; display: flex; flex-direction: column; align-items: center;">
+      <a href="/profile.html?user=${encodeURIComponent(user.username)}" style="margin-bottom: 12px;">
+        ${renderAvatar(user, 'avatar-xl')}
       </a>
-      <a href="/profile.html?user=${encodeURIComponent(user.username)}" class="discover-card-name">
+      <a href="/profile.html?user=${encodeURIComponent(user.username)}" class="discover-card-name" style="font-size: var(--font-base); font-weight: 700; color: var(--text-main); display: inline-flex; align-items: center; gap: 4px;">
         ${escapeHTML(user.username)}
+        ${renderVerifiedBadge()}
       </a>
-      <div class="discover-card-handle">@${escapeHTML(user.username)}</div>
+      <div class="discover-card-handle" style="font-size: var(--font-xs); color: var(--text-muted); margin-bottom: 8px;">@${escapeHTML(user.username)}</div>
 
-      <div class="discover-card-bio">
+      <div class="discover-card-bio" style="font-size: var(--font-xs); color: var(--text-muted); margin-bottom: 14px; min-height: 36px; line-height: 1.5;">
         ${user.bio ? escapeHTML(user.bio) : '<em>No bio yet</em>'}
       </div>
 
-      <div class="discover-card-stats">
+      <div class="discover-card-stats" style="font-size: var(--font-xs); color: var(--text-faint); margin-bottom: 16px;">
         <span><strong>${postCount}</strong> ${postCount === 1 ? 'post' : 'posts'}</span> • 
         <span><strong id="card-followers-${user.id}">${followerCount}</strong> ${followerCount === 1 ? 'follower' : 'followers'}</span>
       </div>
