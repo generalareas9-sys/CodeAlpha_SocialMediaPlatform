@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post · Linkora</title>
+  <meta name="description" content="View post and conversation on Linkora.">
+  <meta name="theme-color" content="#F7F7FB">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Post · Linkora">
+  <meta property="og:description" content="Connect. Share. Grow. A modern community for creators.">
+  <meta property="og:image" content="/assets/og-image.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+  <!-- Sticky Top Navbar -->
+  <div id="navbar-mount"></div>
+
+  <!-- 3-Column Layout -->
+  <div class="app-layout">
+    <main class="app-container">
+      <!-- Left Column: Navigation Sidebar (Desktop) -->
+      <aside class="left-sidebar" id="left-sidebar-mount" aria-label="Main Navigation">
+        <!-- Rendered dynamically by nav.js -->
+      </aside>
+
+      <!-- Center Column: Post Detail & Nested Comments -->
+      <section class="main-feed-column" aria-label="Post Conversation">
+        <!-- Back Navigation Header -->
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <a href="/" class="btn-icon" style="width: 36px; height: 36px;" title="Back to Feed">
+            <svg class="lucide lucide-chevron-right" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20" height="20" style="transform: rotate(180deg);">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </a>
+          <h1 style="font-size: var(--font-lg); font-weight: 700;">Post Conversation</h1>
+        </div>
+
+        <!-- Post Detail Mount -->
+        <div id="post-detail-mount">
+          <div class="card skeleton-card">
+            <div style="display:flex; gap: 12px; align-items:center; margin-bottom: 12px;">
+              <div class="skeleton skeleton-avatar" style="width: 48px; height: 48px;"></div>
+              <div style="flex:1;">
+                <div class="skeleton skeleton-text" style="width: 140px; height: 16px;"></div>
+                <div class="skeleton skeleton-text" style="width: 80px; height: 12px;"></div>
+              </div>
+            </div>
+            <div class="skeleton skeleton-text" style="width: 100%; height: 80px;"></div>
+          </div>
+        </div>
+
+        <!-- Comments Section Card -->
+        <div class="card" style="padding: var(--space-3); margin-top: var(--space-2);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h2 style="font-size: var(--font-base); font-weight: 700;" id="comments-header-title">Replies</h2>
+            
+            <!-- Sort dropdown / segmented tab -->
+            <div class="tabs-segmented">
+              <button type="button" class="tab-segmented-btn active" id="sort-btn-newest" data-sort="newest">Newest</button>
+              <button type="button" class="tab-segmented-btn" id="sort-btn-top" data-sort="top">Top</button>
+            </div>
+          </div>
+
+          <!-- Add Top-Level Reply Input -->
+          <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+            <div id="comment-avatar-mount"></div>
+            <div style="flex: 1;">
+              <textarea 
+                id="main-reply-input" 
+                class="textarea-field" 
+                placeholder="Post your reply..." 
+                rows="2" 
+                maxlength="500"
+                style="resize: none;"
+              ></textarea>
+              <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-submit-main-reply">
+                  Reply
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nested Comments List -->
+          <div id="nested-comments-container"></div>
+        </div>
+      </section>
+
+      <!-- Right Column: Trending & Who to Follow (Desktop) -->
+      <aside class="right-sidebar" aria-label="Trending and Suggested">
+        <!-- Rendered dynamically by nav.js -->
+      </aside>
+    </main>
+  </div>
+
+  <!-- Shared Footer -->
+  <div id="footer-mount"></div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/post.js"></script>
+  <script src="/js/nav.js"></script>
+</body>
+</html>
