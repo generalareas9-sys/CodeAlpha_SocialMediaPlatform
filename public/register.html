@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account · Linkora</title>
-  <meta name="description" content="Connect. Share. Grow. Join the Linkora community of builders and creators.">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="description" content="Connect. Share. Grow. Join Linkora and build your community.">
+  <meta name="theme-color" content="#F7F7FB">
 
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -16,7 +16,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Create Account · Linkora">
-  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:description" content="Connect. Share. Grow. The vibrant social network for creators.">
   <meta property="og:image" content="/assets/og-image.png">
 
   <!-- Styles -->
@@ -26,78 +26,155 @@
   <!-- Global Shared Navbar Mount -->
   <div id="navbar-mount"></div>
 
-  <main class="auth-wrapper">
-    <div class="card auth-card">
-      <div class="auth-header">
-        <a href="/" title="Linkora">
-          <img src="/assets/logo.svg" alt="Linkora" class="auth-logo" />
+  <!-- Split Auth Layout -->
+  <main class="auth-split-wrapper">
+    <!-- Left Side: Brand Panel with Gradient & Highlights Carousel -->
+    <div class="auth-brand-panel">
+      <div class="auth-brand-decor"></div>
+
+      <div class="auth-brand-header">
+        <a href="/" title="Linkora Home">
+          <img src="/assets/logo-light.svg" alt="Linkora" class="auth-brand-logo" />
         </a>
-        <h1 class="auth-title">Create your account</h1>
-        <p class="auth-subtitle">Connect. Share. Grow.</p>
       </div>
 
-      <!-- Inline Error Message -->
-      <div class="input-error-msg" id="register-error-msg" style="margin-bottom: var(--space-4); text-align: center;"></div>
-
-      <form id="register-form">
-        <div class="form-group">
-          <label class="form-label" for="reg-username">Username</label>
-          <input 
-            type="text" 
-            id="reg-username" 
-            class="input-field" 
-            placeholder="e.g. sarah_design" 
-            required 
-            minlength="3" 
-            maxlength="30"
-            autocomplete="username"
-          />
-          <small style="color: var(--text-faint); font-size: 11px; display: block; margin-top: 3px;">
-            Letters, numbers, and underscores (3-30 chars).
-          </small>
+      <!-- Feature Highlights Carousel -->
+      <div class="auth-carousel-container">
+        <!-- Slide 1 -->
+        <div class="auth-carousel-slide active" data-slide="0">
+          <h2 class="auth-carousel-title">Your ideas deserve a modern stage.</h2>
+          <p class="auth-carousel-desc">Join thousands of builders, designers, and innovators sharing ideas and building their presence.</p>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="reg-email">Email Address</label>
-          <input 
-            type="email" 
-            id="reg-email" 
-            class="input-field" 
-            placeholder="name@example.com" 
-            required 
-            autocomplete="email"
-          />
+        <!-- Slide 2 -->
+        <div class="auth-carousel-slide" data-slide="1">
+          <h2 class="auth-carousel-title">Live chats, stories and polls.</h2>
+          <p class="auth-carousel-desc">Keep your audience engaged with dynamic polls, 24-hour visual stories, and real-time private messages.</p>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="reg-password">Password</label>
-          <div class="password-input-wrap">
+        <!-- Slide 3 -->
+        <div class="auth-carousel-slide" data-slide="2">
+          <h2 class="auth-carousel-title">Clean, human and distraction-free.</h2>
+          <p class="auth-carousel-desc">Experience a thoughtfully designed platform built with respect for your time, privacy, and aesthetic.</p>
+        </div>
+
+        <!-- Carousel Indicators -->
+        <div class="auth-carousel-dots">
+          <div class="auth-carousel-dot active" data-index="0" aria-label="Slide 1"></div>
+          <div class="auth-carousel-dot" data-index="1" aria-label="Slide 2"></div>
+          <div class="auth-carousel-dot" data-index="2" aria-label="Slide 3"></div>
+        </div>
+      </div>
+
+      <div class="auth-brand-footer">
+        <div style="font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">CONNECT. SHARE. GROW.</div>
+        <div>© 2026 Linkora, Inc. All rights reserved.</div>
+      </div>
+    </div>
+
+    <!-- Right Side: Clean Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-card-modern">
+        <div class="auth-header" style="margin-bottom: var(--space-3);">
+          <h1 class="auth-title">Create your account</h1>
+          <p class="auth-subtitle">Join the Linkora community in seconds</p>
+        </div>
+
+        <!-- Inline Error Message -->
+        <div class="input-error-msg" id="register-error-msg" style="margin-bottom: var(--space-2); text-align: center;"></div>
+
+        <form id="register-form" novalidate>
+          <!-- Username -->
+          <div class="form-group">
+            <label class="form-label" for="reg-username">Username</label>
             <input 
-              type="password" 
-              id="reg-password" 
+              type="text" 
+              id="reg-username" 
               class="input-field" 
-              placeholder="At least 6 characters" 
+              placeholder="e.g. sarah_design" 
               required 
-              minlength="6" 
-              autocomplete="new-password"
+              minlength="3" 
+              maxlength="30"
+              autocomplete="username"
             />
-            <button type="button" class="btn-toggle-password" data-target="reg-password" aria-label="Show password">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-              </svg>
+            <div class="input-error-msg" id="err-reg-username">Letters, numbers, and underscores (3-30 chars).</div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label" for="reg-email">Email Address</label>
+            <input 
+              type="email" 
+              id="reg-email" 
+              class="input-field" 
+              placeholder="name@example.com" 
+              required 
+              autocomplete="email"
+            />
+            <div class="input-error-msg" id="err-reg-email">Please enter a valid email address.</div>
+          </div>
+
+          <!-- Password with Strength Meter -->
+          <div class="form-group">
+            <label class="form-label" for="reg-password">Password</label>
+            <div class="password-input-wrap">
+              <input 
+                type="password" 
+                id="reg-password" 
+                class="input-field" 
+                placeholder="At least 6 characters" 
+                required 
+                minlength="6" 
+                autocomplete="new-password"
+              />
+              <button type="button" class="btn-toggle-password" data-target="reg-password" aria-label="Show password">
+                <svg class="lucide lucide-eye" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="18" height="18">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Password Strength Meter -->
+            <div class="strength-meter-wrap" id="password-strength-wrap">
+              <div class="strength-bars">
+                <div class="strength-bar" id="bar-1"></div>
+                <div class="strength-bar" id="bar-2"></div>
+                <div class="strength-bar" id="bar-3"></div>
+                <div class="strength-bar" id="bar-4"></div>
+              </div>
+              <div class="strength-text" id="strength-text">Password strength</div>
+            </div>
+            <div class="input-error-msg" id="err-reg-password">Password must be at least 6 characters long.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="btn-register-submit" style="margin-top: var(--space-2);">
+            Create Account
+          </button>
+        </form>
+
+        <!-- Social-style "Continue as demo user" secondary section -->
+        <div class="demo-user-section">
+          <span class="demo-user-label">Or test drive instantly with a demo account:</span>
+          <div class="demo-chips-grid">
+            <button type="button" class="demo-chip-btn" data-username="alex_dev">
+              <span class="avatar avatar-xs" style="background-color: #6366F1; color: white;">A</span>
+              <span>alex_dev</span>
+            </button>
+            <button type="button" class="demo-chip-btn" data-username="sarah_design">
+              <span class="avatar avatar-xs" style="background-color: #EC4899; color: white;">S</span>
+              <span>sarah_design</span>
+            </button>
+            <button type="button" class="demo-chip-btn" data-username="marcus_tech">
+              <span class="avatar avatar-xs" style="background-color: #10B981; color: white;">M</span>
+              <span>marcus_tech</span>
             </button>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="btn-register-submit" style="width: 100%; margin-top: var(--space-2); padding: 10px;">
-          Create Account
-        </button>
-      </form>
-
-      <p style="text-align: center; margin-top: var(--space-6); font-size: var(--font-xs); color: var(--text-muted);">
-        Already have an account? <a href="/login.html" style="color: var(--primary); font-weight: 500;">Sign in here</a>
-      </p>
+        <p style="text-align: center; margin-top: var(--space-3); font-size: var(--font-xs); color: var(--text-muted);">
+          Already have an account? <a href="/login.html" style="color: var(--primary); font-weight: 600;">Sign in here</a>
+        </p>
+      </div>
     </div>
   </main>
 
