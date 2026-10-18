@@ -1,237 +1,240 @@
 const fs = require('fs');
 const path = require('path');
-const zlib = require('zlib');
+const sharp = require('sharp');
 
-// Ensure public/assets directory exists
-const targetDirs = [
-  path.join(__dirname, 'public', 'assets'),
-  'C:\\Users\\OZEYID\\Documents\\CodeAlpha_SocialMediaPlatform\\public\\assets'
-];
+const assetsDir = path.join(__dirname, 'public', 'assets');
+if (!fs.existsSync(assetsDir)) {
+  fs.mkdirSync(assetsDir, { recursive: true });
+}
 
-targetDirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
-
-// 1. logo-icon.svg
+// 1. Sleek Linkora Icon SVG (Transparent background, gradient L-link)
 const logoIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
   <defs>
-    <linearGradient id="linkoraBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5" />
-      <stop offset="100%" stop-color="#4338CA" />
+    <linearGradient id="linkoraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
     </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#8B5CF6" flood-opacity="0.3"/>
+    </filter>
   </defs>
-  <rect width="100" height="100" rx="22" fill="url(#linkoraBg)"/>
-  <!-- Stylized L with chain-link curve and connection nodes -->
-  <path d="M34 24 C34 19.58 37.58 16 42 16 C46.42 16 50 19.58 50 24 V52 C50 54.21 51.79 56 54 56 H72 C76.42 56 80 59.58 80 64 C80 68.42 76.42 72 72 72 H52 C39.85 72 34 62.15 34 50 Z" fill="#FFFFFF"/>
-  <circle cx="68" cy="32" r="7" fill="#C7D2FE"/>
-  <path d="M50 32 H61" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
-</svg>`;
-
-// 2. logo.svg (icon + wordmark)
-const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" fill="none">
-  <defs>
-    <linearGradient id="linkoraLogoBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5" />
-      <stop offset="100%" stop-color="#4338CA" />
-    </linearGradient>
-  </defs>
-  <g transform="translate(0, 2)">
-    <rect width="40" height="40" rx="10" fill="url(#linkoraLogoBg)"/>
-    <path d="M14 11 C14 9.34 15.34 8 17 8 C18.66 8 20 9.34 20 11 V21 C20 22.1 20.9 23 22 23 H29 C30.66 23 32 24.34 32 26 C32 27.66 30.66 29 29 29 H21 C16.58 29 14 25.42 14 21 Z" fill="#FFFFFF"/>
-    <circle cx="28" cy="14" r="3" fill="#C7D2FE"/>
-    <path d="M20 14 H25" stroke="#C7D2FE" stroke-width="2" stroke-linecap="round"/>
+  <!-- Stylized modern connected L link -->
+  <g filter="url(#glow)">
+    <!-- Vertical link loop -->
+    <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#linkoraGrad)"/>
+    <!-- Horizontal bottom link loop extending to the right -->
+    <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#linkoraGrad)"/>
+    <!-- Interlocking node & link punch hole -->
+    <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+    <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+    <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+    <!-- Connected accent node -->
+    <circle cx="67" cy="32" r="8" fill="url(#linkoraGrad)"/>
+    <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
   </g>
-  <text x="52" y="30" fill="#F8FAFC" font-family="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" letter-spacing="-0.03em">Linkora</text>
 </svg>`;
 
-// 3. favicon.svg
+// 2. Full Logo SVG - Dark Variant (Dark text for Light Theme background)
+const logoDarkTextSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" fill="none">
+  <defs>
+    <linearGradient id="linkoraGradDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+  </defs>
+  <!-- Gradient L Icon -->
+  <g transform="translate(2, 4) scale(0.36)">
+    <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#linkoraGradDark)"/>
+    <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#linkoraGradDark)"/>
+    <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+    <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+    <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+    <circle cx="67" cy="32" r="8" fill="url(#linkoraGradDark)"/>
+    <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
+  </g>
+  <!-- Wordmark in Plus Jakarta Sans -->
+  <text x="44" y="28" fill="#0F172A" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="800" letter-spacing="-0.03em">Linkora</text>
+</svg>`;
+
+// 3. Full Logo SVG - Light Variant (Light text for Dark Theme background)
+const logoLightTextSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" fill="none">
+  <defs>
+    <linearGradient id="linkoraGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+  </defs>
+  <!-- Gradient L Icon -->
+  <g transform="translate(2, 4) scale(0.36)">
+    <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#linkoraGradLight)"/>
+    <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#linkoraGradLight)"/>
+    <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+    <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+    <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+    <circle cx="67" cy="32" r="8" fill="url(#linkoraGradLight)"/>
+    <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
+  </g>
+  <!-- Wordmark in Plus Jakarta Sans -->
+  <text x="44" y="28" fill="#F8FAFC" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="800" letter-spacing="-0.03em">Linkora</text>
+</svg>`;
+
+// 4. Adaptive Logo SVG (Uses currentColor for text, so it automatically matches theme)
+const logoAdaptiveSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" fill="none">
+  <defs>
+    <linearGradient id="linkoraGradAdaptive" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+  </defs>
+  <!-- Gradient L Icon -->
+  <g transform="translate(2, 4) scale(0.36)">
+    <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#linkoraGradAdaptive)"/>
+    <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#linkoraGradAdaptive)"/>
+    <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+    <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+    <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+    <circle cx="67" cy="32" r="8" fill="url(#linkoraGradAdaptive)"/>
+    <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
+  </g>
+  <!-- Wordmark in Plus Jakarta Sans with currentColor -->
+  <text x="44" y="28" fill="currentColor" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="800" letter-spacing="-0.03em">Linkora</text>
+</svg>`;
+
+// 5. Favicon SVG (Transparent background)
 const faviconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#4F46E5"/>
-  <path d="M11 8 C11 6.89 11.89 6 13 6 C14.11 6 15 6.89 15 8 V16 C15 16.55 15.45 17 16 17 H22 C23.11 17 24 17.89 24 19 C24 20.11 23.11 21 22 21 H16 C12.68 21 11 18.5 11 16 Z" fill="#FFFFFF"/>
-  <circle cx="21" cy="10" r="2.2" fill="#C7D2FE"/>
+  <defs>
+    <linearGradient id="linkoraFavGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(1, 1) scale(0.3)">
+    <rect x="18" y="10" width="24" height="52" rx="12" fill="url(#linkoraFavGrad)"/>
+    <rect x="18" y="50" width="60" height="24" rx="12" fill="url(#linkoraFavGrad)"/>
+    <circle cx="30" cy="22" r="5" fill="#FFFFFF"/>
+    <circle cx="66" cy="62" r="5" fill="#FFFFFF"/>
+    <circle cx="66" cy="30" r="9" fill="url(#linkoraFavGrad)"/>
+    <circle cx="66" cy="30" r="3.5" fill="#FFFFFF"/>
+  </g>
 </svg>`;
 
-function writeFiles(filename, content) {
-  targetDirs.forEach(dir => {
-    fs.writeFileSync(path.join(dir, filename), content);
-  });
-}
+// 6. Rich OG Image SVG (1200x630)
+const ogImageSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <defs>
+    <linearGradient id="ogBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0B12" />
+      <stop offset="100%" stop-color="#14141F" />
+    </linearGradient>
+    <linearGradient id="ogGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+    <filter id="ogGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="24" flood-color="#8B5CF6" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#ogBg)"/>
+  <!-- Ambient circles -->
+  <circle cx="200" cy="150" r="280" fill="#6366F1" fill-opacity="0.12" filter="blur(80px)"/>
+  <circle cx="1050" cy="450" r="320" fill="#EC4899" fill-opacity="0.1" filter="blur(100px)"/>
+  <circle cx="600" cy="300" r="200" fill="#8B5CF6" fill-opacity="0.08" filter="blur(70px)"/>
 
-writeFiles('logo-icon.svg', logoIconSvg);
-writeFiles('logo.svg', logoSvg);
-writeFiles('favicon.svg', faviconSvg);
-console.log('✅ SVGs created: logo.svg, logo-icon.svg, favicon.svg');
+  <!-- Logo and Glyph -->
+  <g transform="translate(140, 200)" filter="url(#ogGlow)">
+    <g transform="scale(1.6)">
+      <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#ogGrad)"/>
+      <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#ogGrad)"/>
+      <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+      <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+      <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+      <circle cx="67" cy="32" r="8" fill="url(#ogGrad)"/>
+      <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
+    </g>
+    <!-- Brand Title -->
+    <text x="170" y="70" fill="#FFFFFF" font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" font-size="76" font-weight="800" letter-spacing="-0.03em">Linkora</text>
+    <!-- Tagline -->
+    <text x="174" y="125" fill="#94A3B8" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="28" font-weight="500">Connect. Share. Grow.</text>
+    <text x="174" y="165" fill="#CBD5E1" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="400">The modern, vibrant social network for creators and thinkers.</text>
+  </g>
 
-// PNG Generator Helper
-function createPNG(width, height, getPixelRGBA) {
-  const rowSize = 1 + width * 4;
-  const rawData = Buffer.alloc(rowSize * height);
+  <!-- Bottom Badges -->
+  <g transform="translate(314, 460)">
+    <rect width="180" height="42" rx="21" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)"/>
+    <text x="90" y="26" text-anchor="middle" fill="#C7D2FE" font-family="'Inter', sans-serif" font-size="15" font-weight="600">✨ Real-time</text>
 
-  for (let y = 0; y < height; y++) {
-    const rowOffset = y * rowSize;
-    rawData[rowOffset] = 0;
-    for (let x = 0; x < width; x++) {
-      const [r, g, b, a] = getPixelRGBA(x, y);
-      const pixelOffset = rowOffset + 1 + x * 4;
-      rawData[pixelOffset] = r;
-      rawData[pixelOffset + 1] = g;
-      rawData[pixelOffset + 2] = b;
-      rawData[pixelOffset + 3] = a;
-    }
-  }
+    <g transform="translate(200, 0)">
+      <rect width="180" height="42" rx="21" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)"/>
+      <text x="90" y="26" text-anchor="middle" fill="#F472B6" font-family="'Inter', sans-serif" font-size="15" font-weight="600">📸 Rich Stories</text>
+    </g>
 
-  const compressed = zlib.deflateSync(rawData);
+    <g transform="translate(400, 0)">
+      <rect width="180" height="42" rx="21" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)"/>
+      <text x="90" y="26" text-anchor="middle" fill="#A78BFA" font-family="'Inter', sans-serif" font-size="15" font-weight="600">⚡ Live Chat</text>
+    </g>
+  </g>
+</svg>`;
 
-  function crc32(buf) {
-    let crc = 0xffffffff;
-    for (let i = 0; i < buf.length; i++) {
-      let byte = buf[i];
-      for (let j = 0; j < 8; j++) {
-        const bit = (byte ^ crc) & 1;
-        crc = (crc >>> 1) ^ (bit ? 0xedb88320 : 0);
-        byte >>>= 1;
-      }
-    }
-    return (crc ^ 0xffffffff) >>> 0;
-  }
+async function buildAssets() {
+  console.log('🎨 Generating brand assets with Linkora primary gradient (#6366F1 -> #8B5CF6 -> #EC4899)...');
 
-  function makeChunk(type, data) {
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length, 0);
-    const typeAndData = Buffer.concat([Buffer.from(type, 'ascii'), data]);
-    const crc = Buffer.alloc(4);
-    crc.writeUInt32BE(crc32(typeAndData), 0);
-    return Buffer.concat([len, typeAndData, crc]);
-  }
+  // Write SVGs
+  fs.writeFileSync(path.join(assetsDir, 'logo.svg'), logoDarkTextSvg);
+  fs.writeFileSync(path.join(assetsDir, 'logo-dark.svg'), logoDarkTextSvg);
+  fs.writeFileSync(path.join(assetsDir, 'logo-light.svg'), logoLightTextSvg);
+  fs.writeFileSync(path.join(assetsDir, 'logo-adaptive.svg'), logoAdaptiveSvg);
+  fs.writeFileSync(path.join(assetsDir, 'logo-icon.svg'), logoIconSvg);
+  fs.writeFileSync(path.join(assetsDir, 'favicon.svg'), faviconSvg);
 
-  const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8;
-  ihdr[9] = 6;
-  ihdr[10] = 0;
-  ihdr[11] = 0;
-  ihdr[12] = 0;
+  console.log('✅ SVGs written: logo.svg, logo-dark.svg, logo-light.svg, logo-adaptive.svg, logo-icon.svg, favicon.svg');
 
-  return Buffer.concat([
-    sig,
-    makeChunk('IHDR', ihdr),
-    makeChunk('IDAT', compressed),
-    makeChunk('IEND', Buffer.alloc(0))
+  // Generate PNGs using Sharp
+  const favBuf = Buffer.from(faviconSvg);
+  await sharp(favBuf).resize(16, 16).png().toFile(path.join(assetsDir, 'favicon-16.png'));
+  await sharp(favBuf).resize(32, 32).png().toFile(path.join(assetsDir, 'favicon-32.png'));
+  await sharp(favBuf).resize(180, 180).png().toFile(path.join(assetsDir, 'apple-touch-icon.png'));
+
+  // ICO header + 32x32 PNG embed
+  const png32Buf = await sharp(favBuf).resize(32, 32).png().toBuffer();
+  const icoHeader = Buffer.from([
+    0x00, 0x00,             // Reserved
+    0x01, 0x00,             // Type: 1 = ICO
+    0x01, 0x00,             // Number of images: 1
+    0x20,                   // Width: 32
+    0x20,                   // Height: 32
+    0x00,                   // Colors: 0 (No color palette)
+    0x00,                   // Reserved
+    0x01, 0x00,             // Color planes: 1
+    0x20, 0x00,             // Bits per pixel: 32
+    ...int32ToBytes(png32Buf.length), // Size of image data
+    0x16, 0x00, 0x00, 0x00  // Offset of image data (22 bytes header)
   ]);
+  const icoBuf = Buffer.concat([icoHeader, png32Buf]);
+  fs.writeFileSync(path.join(assetsDir, 'favicon.ico'), icoBuf);
+
+  // Generate OG image PNG (1200x630)
+  const ogBuf = Buffer.from(ogImageSvg);
+  await sharp(ogBuf).resize(1200, 630).png().toFile(path.join(assetsDir, 'og-image.png'));
+
+  console.log('✅ PNGs & Favicons generated: favicon-16.png, favicon-32.png, apple-touch-icon.png, favicon.ico, og-image.png');
 }
 
-// Draw icon bitmap
-function renderIconPixel(x, y, size) {
-  const normX = (x / size) * 100;
-  const normY = (y / size) * 100;
-  
-  // Rounded rectangle bounds (rx: 22)
-  const pad = 4;
-  const rad = 20;
-  const min = pad;
-  const max = 100 - pad;
-
-  let insideBox = false;
-  if (normX >= min + rad && normX <= max - rad && normY >= min && normY <= max) insideBox = true;
-  else if (normY >= min + rad && normY <= max - rad && normX >= min && normX <= max) insideBox = true;
-  else {
-    const cx = normX < 50 ? min + rad : max - rad;
-    const cy = normY < 50 ? min + rad : max - rad;
-    const distSq = (normX - cx) ** 2 + (normY - cy) ** 2;
-    if (distSq <= rad ** 2) insideBox = true;
-  }
-
-  if (!insideBox) return [0, 0, 0, 0];
-
-  // Primary background color #4F46E5 (79, 70, 229) with subtle vertical gradient
-  const gradT = normY / 100;
-  const bgR = Math.round(79 * (1 - gradT * 0.15));
-  const bgG = Math.round(70 * (1 - gradT * 0.15));
-  const bgB = Math.round(229 * (1 - gradT * 0.15));
-
-  // Glyph shape: "L" chain-link
-  // Vertical stem: normX between 34 and 48, normY between 22 and 60
-  // Horizontal foot: normY between 56 and 70, normX between 34 and 74
-  // Connection circle: center (68, 32), r=7
-  let isGlyph = false;
-  if (normX >= 35 && normX <= 48 && normY >= 22 && normY <= 64) isGlyph = true;
-  if (normY >= 56 && normY <= 70 && normX >= 35 && normX <= 72) isGlyph = true;
-  
-  // Connection node
-  const nodeDistSq = (normX - 68) ** 2 + (normY - 32) ** 2;
-  if (nodeDistSq <= 49) return [199, 210, 254, 255]; // #C7D2FE
-  
-  // Connection bridge
-  if (normY >= 30 && normY <= 34 && normX >= 48 && normX <= 68) return [199, 210, 254, 255];
-
-  if (isGlyph) {
-    return [255, 255, 255, 255]; // Pure white glyph
-  }
-
-  return [bgR, bgG, bgB, 255];
+function int32ToBytes(val) {
+  return [
+    val & 0xff,
+    (val >> 8) & 0xff,
+    (val >> 16) & 0xff,
+    (val >> 24) & 0xff
+  ];
 }
 
-// 4. Generate favicon-16.png
-const fav16 = createPNG(16, 16, (x, y) => renderIconPixel(x, y, 16));
-writeFiles('favicon-16.png', fav16);
-
-// 5. Generate favicon-32.png
-const fav32 = createPNG(32, 32, (x, y) => renderIconPixel(x, y, 32));
-writeFiles('favicon-32.png', fav32);
-
-// 6. Generate apple-touch-icon.png (180x180)
-const touchIcon = createPNG(180, 180, (x, y) => renderIconPixel(x, y, 180));
-writeFiles('apple-touch-icon.png', touchIcon);
-
-// 7. Generate favicon.ico wrapping the 32x32 PNG
-function createICO(pngBuffer, size = 32) {
-  const header = Buffer.alloc(6);
-  header.writeUInt16LE(0, 0); // reserved
-  header.writeUInt16LE(1, 2); // ICO image
-  header.writeUInt16LE(1, 4); // 1 image
-
-  const entry = Buffer.alloc(16);
-  entry.writeUInt8(size, 0); // width
-  entry.writeUInt8(size, 1); // height
-  entry.writeUInt8(0, 2); // colors
-  entry.writeUInt8(0, 3); // reserved
-  entry.writeUInt16LE(1, 4); // color planes
-  entry.writeUInt16LE(32, 6); // bits per pixel
-  entry.writeUInt32LE(pngBuffer.length, 8); // size of image in bytes
-  entry.writeUInt32LE(22, 12); // offset (6 + 16 = 22)
-
-  return Buffer.concat([header, entry, pngBuffer]);
-}
-
-const favIco = createICO(fav32, 32);
-writeFiles('favicon.ico', favIco);
-console.log('✅ Icons created: favicon-16.png, favicon-32.png, apple-touch-icon.png, favicon.ico');
-
-// 8. Generate og-image.png (1200x630)
-const ogImage = createPNG(1200, 630, (x, y) => {
-  // Deep dark surface #0F172A (15, 23, 42)
-  // Subtle radial indigo glow centered at (600, 250)
-  const distSq = (x - 600) ** 2 + (y - 250) ** 2;
-  const maxDist = 700;
-  const glow = Math.max(0, 1 - Math.sqrt(distSq) / maxDist);
-
-  let r = Math.round(15 + glow * 25);
-  let g = Math.round(23 + glow * 25);
-  let b = Math.round(42 + glow * 80);
-
-  // Centered logo card 140x140 at (530, 180)
-  if (x >= 530 && x <= 670 && y >= 180 && y <= 320) {
-    const iconPixel = renderIconPixel(x - 530, y - 180, 140);
-    if (iconPixel[3] > 0) return iconPixel;
-  }
-
-  return [r, g, b, 255];
+buildAssets().catch(err => {
+  console.error('Error generating assets:', err);
+  process.exit(1);
 });
-
-writeFiles('og-image.png', ogImage);
-console.log('✅ OG Image created: og-image.png (1200x630)');
-console.log('🎉 Step (a) asset generation complete!');
