@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile · Linkora</title>
   <meta name="description" content="Connect. Share. Grow. View user profile and posts on Linkora.">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#F7F7FB">
 
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
@@ -16,23 +16,37 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Profile · Linkora">
-  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:description" content="Connect. Share. Grow. The vibrant social network for creators.">
   <meta property="og:image" content="/assets/og-image.png">
 
   <!-- Styles -->
   <link rel="stylesheet" href="/css/theme.css">
 </head>
 <body>
-  <!-- Shared Navbar -->
+  <!-- Sticky Top Navbar -->
   <div id="navbar-mount"></div>
 
-  <div class="main-wrapper">
-    <main class="app-container single-col" id="profile-content-mount">
-      <!-- Profile Header Mount -->
-      <div id="profile-header-mount"></div>
+  <!-- Main 3-Column Responsive Layout -->
+  <div class="app-layout">
+    <main class="app-container">
+      <!-- Left Column: Navigation Sidebar (Desktop) -->
+      <aside class="left-sidebar" id="left-sidebar-mount" aria-label="Main Navigation">
+        <!-- Rendered dynamically by nav.js -->
+      </aside>
 
-      <!-- User Posts Mount -->
-      <section id="profile-posts-mount" aria-label="User Posts Stream"></section>
+      <!-- Center Column: Profile Header & User Stream -->
+      <section class="main-feed-column" id="profile-content-mount" aria-label="User Profile">
+        <!-- Profile Header Mount -->
+        <div id="profile-header-mount"></div>
+
+        <!-- User Posts Mount -->
+        <section id="profile-posts-mount" aria-label="User Posts Stream"></section>
+      </section>
+
+      <!-- Right Column: Trending & Who to Follow (Desktop) -->
+      <aside class="right-sidebar" aria-label="Trending and Suggested">
+        <!-- Rendered dynamically by nav.js -->
+      </aside>
     </main>
   </div>
 
@@ -44,15 +58,16 @@
         <button type="button" class="btn-close-modal" id="btn-close-edit-modal" title="Close">✕</button>
       </div>
 
-      <form id="edit-profile-form">
+      <form id="edit-profile-form" style="padding: var(--space-3);">
         <div class="form-group">
           <label class="form-label" for="edit-bio">Bio</label>
           <textarea 
             id="edit-bio" 
-            class="input-field" 
+            class="textarea-field" 
             rows="3" 
             placeholder="Tell the community about yourself..." 
             maxlength="300"
+            style="resize: none;"
           ></textarea>
         </div>
 
@@ -69,8 +84,8 @@
           </small>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-6);">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('edit-profile-modal').classList.remove('active')">
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-1); margin-top: var(--space-3);">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-edit-modal">
             Cancel
           </button>
           <button type="submit" class="btn btn-primary btn-sm" id="btn-save-profile">
@@ -88,7 +103,7 @@
         <h2 class="modal-title" id="users-modal-title">Users</h2>
         <button type="button" class="btn-close-modal" id="btn-close-users-modal" title="Close">✕</button>
       </div>
-      <div id="users-modal-content" style="max-height: 400px; overflow-y: auto;"></div>
+      <div id="users-modal-content" style="max-height: 420px; overflow-y: auto; padding: var(--space-2);"></div>
     </div>
   </div>
 
