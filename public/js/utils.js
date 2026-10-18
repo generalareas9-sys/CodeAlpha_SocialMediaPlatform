@@ -35,14 +35,13 @@ function applyTheme(theme) {
   // Update meta theme-color for mobile browser chrome
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   if (themeColorMeta) {
-    themeColorMeta.setAttribute('content', theme === 'dark' ? '#0B0B12' : '#F7F7FB');
+    themeColorMeta.setAttribute('content', theme === 'dark' ? '#0F1020' : '#F5F6FF');
   }
 
   // Update theme toggle icons across page
   updateThemeToggleIcons(theme);
 
-  // Update logos if present with dynamic variant
-  updateLogosForTheme(theme);
+  // Logos switch purely via CSS ([data-theme] show/hide) - no JS needed.
 }
 
 function toggleTheme() {
@@ -63,16 +62,9 @@ function updateThemeToggleIcons(theme) {
   });
 }
 
-function updateLogosForTheme(theme) {
-  const logoImgs = document.querySelectorAll('.brand-logo-img, .auth-logo');
-  logoImgs.forEach(img => {
-    // If logo has dedicated light/dark variants, switch gracefully
-    if (theme === 'dark') {
-      img.src = '/assets/logo-light.svg';
-    } else {
-      img.src = '/assets/logo-dark.svg';
-    }
-  });
+function updateLogosForTheme() {
+  // Deprecated: logos are now dual-rendered (<img class="logo-theme-light"> +
+  // <img class="logo-theme-dark">) and switched entirely by CSS via [data-theme].
 }
 
 // ============================================================================
@@ -133,7 +125,9 @@ function getUsernameColor(username) {
     hash = username.charCodeAt(i) + ((hash << 5) - hash);
   }
   const h = Math.abs(hash % 360);
-  return `hsl(${h}, 65%, 50%)`;
+  // Dark, saturated tone - guarantees >= 4.5:1 against the white initial
+  // rendered by .avatar (color: #FFFFFF). Validated by test-contrast.js.
+  return `hsl(${h}, 58%, 30%)`;
 }
 
 function renderAvatar(user, sizeClass = 'avatar-md', options = {}) {
