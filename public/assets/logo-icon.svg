@@ -1,13 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
   <defs>
-    <linearGradient id="linkoraBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#4F46E5" />
-      <stop offset="100%" stop-color="#4338CA" />
+    <linearGradient id="linkoraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="50%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#EC4899" />
     </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#8B5CF6" flood-opacity="0.3"/>
+    </filter>
   </defs>
-  <rect width="100" height="100" rx="22" fill="url(#linkoraBg)"/>
-  <!-- Stylized L with chain-link curve and connection nodes -->
-  <path d="M34 24 C34 19.58 37.58 16 42 16 C46.42 16 50 19.58 50 24 V52 C50 54.21 51.79 56 54 56 H72 C76.42 56 80 59.58 80 64 C80 68.42 76.42 72 72 72 H52 C39.85 72 34 62.15 34 50 Z" fill="#FFFFFF"/>
-  <circle cx="68" cy="32" r="7" fill="#C7D2FE"/>
-  <path d="M50 32 H61" stroke="#C7D2FE" stroke-width="4" stroke-linecap="round"/>
+  <!-- Stylized modern connected L link -->
+  <g filter="url(#glow)">
+    <!-- Vertical link loop -->
+    <rect x="22" y="14" width="22" height="48" rx="11" fill="url(#linkoraGrad)"/>
+    <!-- Horizontal bottom link loop extending to the right -->
+    <rect x="22" y="52" width="56" height="22" rx="11" fill="url(#linkoraGrad)"/>
+    <!-- Interlocking node & link punch hole -->
+    <circle cx="33" cy="25" r="5" fill="#FFFFFF"/>
+    <circle cx="67" cy="63" r="5" fill="#FFFFFF"/>
+    <circle cx="33" cy="63" r="4" fill="#FFFFFF" fill-opacity="0.8"/>
+    <!-- Connected accent node -->
+    <circle cx="67" cy="32" r="8" fill="url(#linkoraGrad)"/>
+    <circle cx="67" cy="32" r="3" fill="#FFFFFF"/>
+  </g>
 </svg>
