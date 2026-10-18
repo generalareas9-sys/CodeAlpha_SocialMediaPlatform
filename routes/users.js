@@ -294,4 +294,72 @@ router.get('/:id/following', optionalAuth, (req, res) => {
   }
 });
 
+/**
+ * POST /api/users/:id/mute
+ * Toggle mute on a user
+ */
+router.post('/:id/mute', requireAuth, (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.id, 10);
+    const userId = req.user.id;
+
+    if (targetUserId === userId) {
+      return res.status(400).json({ error: 'You cannot mute yourself' });
+    }
+
+    const existing = db.prepare('SELECT id FROM mutes WHERE user_id = ? AND muted_user_id = ?').get(userId, targetUserId);
+
+    let muted = false;
+    if (existing) {
+      db.prepare('DELETE FROM mutes WHERE id = ?').run(existing.id);
+      muted = false;
+    } else {
+      db.prepare('INSERT INTO mutes (user_id, muted_user_id) VALUES (?, ?)').run(userId, targetUserId);
+      muted = true;
+    }
+
+    return res.json({
+      muted,
+      message: muted ? 'User muted' : 'User unmuted'
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to mute user' });
+  }
+});
+
+/**
+ * POST /api/users/:id/block
+ * Toggle block on a user
+ */
+router.post('/:id/block', requireAuth, (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.id, 10);
+    const userId = req.user.id;
+
+    if (targetUserId === userId) {
+      return res.status(400).json({ error: 'You cannot block yourself' });
+    }
+
+    const existing = db.prepare('SELECT id FROM blocks WHERE user_id = ? AND blocked_user_id = ?').get(userId, targetUserId);
+
+    let blocked = false;
+    if (existing) {
+      db.prepare('DELETE FROM blocks WHERE id = ?').run(existing.id);
+      blocked = false;
+    } else {
+      db.prepare('INSERT INTO blocks (user_id, blocked_user_id) VALUES (?, ?)').run(userId, targetUserId);
+      // Also automatically remove follow relationships both ways
+      db.prepare('DELETE FROM follows WHERE (follower_id = ? AND following_id = ?) OR (follower_id = ? AND following_id = ?)').run(userId, targetUserId, targetUserId, userId);
+      blocked = true;
+    }
+
+    return res.json({
+      blocked,
+      message: blocked ? 'User blocked' : 'User unblocked'
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Failed to block user' });
+  }
+});
+
 module.exports = router;
