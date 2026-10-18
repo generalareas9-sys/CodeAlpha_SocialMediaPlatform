@@ -1,18 +1,25 @@
 /**
- * Linkora - Feed Controller
+ * Linkora - Feed Controller (Phase 2: Full-Featured Posts, Composer & Real-Time)
  * Connect. Share. Grow.
- * Modern Instagram + Threads style feed with Lucide icons and polished animations.
  */
-let currentFilter = ''; // '' for following feed, 'all' for global explore
+let currentFilter = ''; // '' for following, 'for_you' for explore
+let nextCursor = null;
+let isLoadingMore = false;
+let pendingRealtimePosts = 0;
+let attachedImages = []; // Array of File objects or preview objects
+let isPollActive = false;
 
 async function pageInit(user) {
   if (user) {
-    setupComposer(user);
+    setupFullComposer(user);
     setupTabs();
+    setupInfiniteScroll();
+    setupSocketRealtime();
     loadFeed();
   } else {
-    // Logged out visitor: show rich landing hero & public trending feed
+    // Logged out visitor: show landing hero & global public feed
     setupLoggedOutLanding();
+    setupInfiniteScroll();
     loadFeed(true);
   }
 }
@@ -50,7 +57,7 @@ function setupLoggedOutLanding() {
               ${renderIcon('sparkles', '', 'width="24" height="24"')}
             </div>
             <h3 class="feature-title">Real-Time Everything</h3>
-            <p class="feature-desc">Experience instant direct messaging, live reaction bursts, and real-time feed updates powered by Socket.io.</p>
+            <p class="feature-desc">Experience live messaging, instant reactions, and real-time feed updates powered by Socket.io.</p>
           </div>
 
           <div class="landing-feature-card">
@@ -58,7 +65,7 @@ function setupLoggedOutLanding() {
               ${renderIcon('image', '', 'width="24" height="24"')}
             </div>
             <h3 class="feature-title">Rich Stories & Media</h3>
-            <p class="feature-desc">Express yourself with 24-hour visual stories, multi-photo posts, and interactive polls with live voting.</p>
+            <p class="feature-desc">Express yourself with 24-hour visual stories, multi-photo posts, and interactive community polls.</p>
           </div>
 
           <div class="landing-feature-card">
@@ -78,8 +85,7 @@ function setupLoggedOutLanding() {
   const composer = document.getElementById('post-composer');
   if (composer) composer.style.display = 'none';
 
-  // Set default filter to 'all' and update feed title
-  currentFilter = 'all';
+  currentFilter = 'for_you';
   const feedTitle = document.querySelector('.feed-title');
   if (feedTitle) feedTitle.textContent = 'Trending on Linkora';
 
@@ -88,94 +94,119 @@ function setupLoggedOutLanding() {
 }
 
 // ============================================================================
-// 2. Post Composer
+// 2. Full-Featured Composer (Ring, Emoji, Multi-Image, Poll, Autocomplete)
 // ============================================================================
-function setupComposer(user) {
+function setupFullComposer(user) {
   const avatarWrap = document.getElementById('composer-avatar-mount');
   if (avatarWrap) {
     avatarWrap.innerHTML = renderAvatar(user, 'avatar-md');
   }
 
   const textarea = document.getElementById('post-content');
-  const charCounter = document.getElementById('char-counter');
   const btnSubmit = document.getElementById('btn-submit-post');
-  const btnToggleImage = document.getElementById('btn-toggle-image');
-  const imageInputWrap = document.getElementById('image-input-wrap');
-  const imageInput = document.getElementById('post-image-url');
-  const previewWrap = document.getElementById('image-preview-wrap');
-  const previewImg = document.getElementById('image-preview');
-  const btnRemovePreview = document.getElementById('btn-remove-preview');
+  const ringWrap = document.getElementById('composer-char-ring');
+  const dropZone = document.getElementById('post-composer');
+  const fileInput = document.getElementById('composer-file-input');
+  const btnUploadImg = document.getElementById('btn-upload-image');
+  const previewsGrid = document.getElementById('composer-previews-grid');
+  const btnTogglePoll = document.getElementById('btn-toggle-poll');
+  const pollBox = document.getElementById('composer-poll-box');
+  const btnClosePoll = document.getElementById('btn-close-poll');
+  const btnAddPollOpt = document.getElementById('btn-add-poll-option');
+  const btnToggleEmoji = document.getElementById('btn-toggle-emoji');
+  const emojiPopover = document.getElementById('composer-emoji-popover');
+  const autocompleteMenu = document.getElementById('composer-autocomplete-dropdown');
+  const visibilitySelect = document.getElementById('post-visibility');
 
   if (!textarea) return;
 
-  btnSubmit.disabled = true;
-
-  // Auto-growing textarea + 280-character counter
+  // 1. Textarea Auto-Grow & Ring Counter
   textarea.addEventListener('input', () => {
     const len = textarea.value.length;
-    const remaining = 280 - len;
-    charCounter.textContent = `${len}/280`;
+    updateCharRing(ringWrap, len, 280);
 
-    if (len === 0) {
-      charCounter.className = 'char-counter';
-      btnSubmit.disabled = true;
-    } else if (remaining < 0) {
-      charCounter.className = 'char-counter danger';
-      btnSubmit.disabled = true;
-    } else if (remaining <= 20) {
-      charCounter.className = 'char-counter warning';
-      btnSubmit.disabled = false;
-    } else {
-      charCounter.className = 'char-counter';
-      btnSubmit.disabled = false;
-    }
-
-    // Auto grow
+    // Auto-grow
     textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 220) + 'px';
+    textarea.style.height = Math.min(textarea.scrollHeight, 240) + 'px';
+
+    // Submit state validation
+    checkComposerSubmitReady();
+
+    // Check for @mentions or #hashtags autocomplete
+    handleComposerAutocomplete(textarea, autocompleteMenu);
   });
 
-  // Toggle image URL input
-  if (btnToggleImage && imageInputWrap) {
-    btnToggleImage.addEventListener('click', () => {
-      imageInputWrap.classList.toggle('active');
-      if (imageInputWrap.classList.contains('active')) {
-        imageInput.focus();
+  // 2. Emoji Picker Popover
+  initEmojiPickerPopover(textarea, btnToggleEmoji, emojiPopover);
+
+  // 3. Multi-Image Upload (Drop & File Selection, up to 4 images)
+  if (btnUploadImg && fileInput) {
+    btnUploadImg.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => handleSelectedFiles(e.target.files);
+  }
+
+  if (dropZone) {
+    ['dragenter', 'dragover'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(name => {
+      dropZone.addEventListener(name, (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      if (e.dataTransfer && e.dataTransfer.files) {
+        handleSelectedFiles(e.dataTransfer.files);
       }
     });
   }
 
-  // Image URL input preview
-  if (imageInput) {
-    imageInput.addEventListener('input', debounce(() => {
-      const url = imageInput.value.trim();
-      if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-        previewImg.src = url;
-        previewImg.onload = () => {
-          previewWrap.classList.add('active');
-        };
-        previewImg.onerror = () => {
-          previewWrap.classList.remove('active');
-        };
-      } else {
-        previewWrap.classList.remove('active');
-      }
-    }, 400));
+  // 4. Poll Creation
+  if (btnTogglePoll && pollBox) {
+    btnTogglePoll.onclick = () => {
+      isPollActive = !isPollActive;
+      pollBox.style.display = isPollActive ? 'block' : 'none';
+      btnTogglePoll.classList.toggle('active', isPollActive);
+      checkComposerSubmitReady();
+    };
+
+    if (btnClosePoll) {
+      btnClosePoll.onclick = () => {
+        isPollActive = false;
+        pollBox.style.display = 'none';
+        btnTogglePoll.classList.remove('active');
+        checkComposerSubmitReady();
+      };
+    }
+
+    if (btnAddPollOpt) {
+      btnAddPollOpt.onclick = () => {
+        const optInputs = document.querySelectorAll('.poll-opt-input');
+        if (optInputs.length >= 4) {
+          showToast('Maximum 4 poll options allowed', 'info');
+          return;
+        }
+        const container = document.getElementById('poll-options-inputs');
+        const row = document.createElement('div');
+        row.className = 'composer-poll-option-row';
+        row.innerHTML = `
+          <input type="text" class="input-field poll-opt-input" placeholder="Option ${optInputs.length + 1}" maxlength="50" style="font-size: var(--font-xs);" />
+          <button type="button" class="btn-icon" style="width: 24px; height: 24px;" onclick="this.closest('.composer-poll-option-row').remove(); checkComposerSubmitReady();">✕</button>
+        `;
+        container.appendChild(row);
+      };
+    }
   }
 
-  // Remove preview button
-  if (btnRemovePreview) {
-    btnRemovePreview.addEventListener('click', () => {
-      if (imageInput) imageInput.value = '';
-      previewWrap.classList.remove('active');
-    });
-  }
-
-  // Submit Post
-  btnSubmit.addEventListener('click', async () => {
+  // 5. Submit Handler
+  btnSubmit.onclick = async () => {
     const content = textarea.value.trim();
-    const imageUrl = imageInput ? imageInput.value.trim() : '';
-
     if (!content) return;
     if (content.length > 280) {
       showToast('Post cannot exceed 280 characters', 'error');
@@ -183,20 +214,60 @@ function setupComposer(user) {
     }
 
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Posting...';
+    btnSubmit.textContent = 'Publishing...';
 
     try {
-      const res = await API.createPost(content, imageUrl);
+      // 1. Upload images if attached
+      let mediaUrls = [];
+      if (attachedImages.length > 0) {
+        const formData = new FormData();
+        for (const file of attachedImages) {
+          // Compress client-side before sending
+          const compressed = await compressImageClientSide(file);
+          formData.append('images', compressed);
+        }
+        const uploadRes = await API.uploadImages(formData);
+        mediaUrls = uploadRes.urls || [];
+      }
+
+      // 2. Build Poll object if active
+      let pollData = null;
+      if (isPollActive) {
+        const question = (document.getElementById('poll-question-input')?.value || '').trim();
+        const optionInputs = Array.from(document.querySelectorAll('.poll-opt-input'));
+        const options = optionInputs.map(input => input.value.trim()).filter(Boolean);
+
+        if (options.length < 2) {
+          showToast('Please provide at least 2 poll options', 'error');
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = 'Post';
+          return;
+        }
+
+        const duration = parseInt(document.getElementById('poll-duration-select')?.value, 10) || 24;
+        pollData = { question, options, duration_hours: duration };
+      }
+
+      const visibility = visibilitySelect ? visibilitySelect.value : 'public';
+
+      // 3. Post to API
+      const res = await API.createPost({
+        content,
+        media_urls: mediaUrls,
+        image_url: mediaUrls[0] || '',
+        poll: pollData,
+        visibility
+      });
+
       showToast('Post published successfully!', 'success');
 
-      // Reset form
+      // Reset composer
       textarea.value = '';
       textarea.style.height = 'auto';
-      charCounter.textContent = '0/280';
-      charCounter.className = 'char-counter';
-      if (imageInput) imageInput.value = '';
-      if (previewWrap) previewWrap.classList.remove('active');
-      if (imageInputWrap) imageInputWrap.classList.remove('active');
+      updateCharRing(ringWrap, 0, 280);
+      attachedImages = [];
+      renderAttachedPreviews();
+      if (isPollActive && btnClosePoll) btnClosePoll.click();
 
       // Prepend to feed
       const feedContainer = document.getElementById('feed-container');
@@ -210,41 +281,219 @@ function setupComposer(user) {
       // Increment sidebar count
       const postCountEl = document.getElementById('sidebar-post-count');
       if (postCountEl) {
-        const newCount = parseInt(postCountEl.textContent || '0', 10) + 1;
-        postCountEl.textContent = newCount;
+        postCountEl.textContent = parseInt(postCountEl.textContent || '0', 10) + 1;
       }
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
-      btnSubmit.disabled = textarea.value.trim().length === 0;
+      btnSubmit.disabled = false;
       btnSubmit.textContent = 'Post';
+      checkComposerSubmitReady();
     }
-  });
+  };
+
+  function checkComposerSubmitReady() {
+    const len = textarea.value.trim().length;
+    btnSubmit.disabled = len === 0 || len > 280;
+  }
+
+  function handleSelectedFiles(files) {
+    if (!files || files.length === 0) return;
+    const remainingSlots = 4 - attachedImages.length;
+    if (remainingSlots <= 0) {
+      showToast('You can attach up to 4 images per post', 'info');
+      return;
+    }
+
+    const newFiles = Array.from(files).slice(0, remainingSlots);
+    for (const file of newFiles) {
+      if (file.type.startsWith('image/')) {
+        attachedImages.push(file);
+      }
+    }
+    renderAttachedPreviews();
+  }
+
+  function renderAttachedPreviews() {
+    if (!previewsGrid) return;
+    if (attachedImages.length === 0) {
+      previewsGrid.style.display = 'none';
+      previewsGrid.innerHTML = '';
+      return;
+    }
+
+    previewsGrid.style.display = 'grid';
+    previewsGrid.innerHTML = '';
+
+    attachedImages.forEach((file, index) => {
+      const item = document.createElement('div');
+      item.className = 'composer-preview-item';
+
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      item.appendChild(img);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-thumb';
+      removeBtn.innerHTML = '✕';
+      removeBtn.onclick = () => {
+        attachedImages.splice(index, 1);
+        renderAttachedPreviews();
+      };
+      item.appendChild(removeBtn);
+
+      previewsGrid.appendChild(item);
+    });
+  }
 }
 
 // ============================================================================
-// 3. Feed Tabs (Following vs Explore All)
+// 3. Emoji Picker Popover Helper
+// ============================================================================
+function initEmojiPickerPopover(textarea, toggleBtn, popover) {
+  if (!toggleBtn || !popover || !textarea) return;
+
+  const popularEmojis = [
+    '😀', '😂', '😍', '🔥', '🚀', '✨', '💡',
+    '🎉', '❤️', '👏', '🙌', '💯', '👍', '👀',
+    '🤔', '⚡', '💻', '🎨', '📚', '🌱', '☕'
+  ];
+
+  popover.innerHTML = `
+    <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">QUICK EMOJIS</div>
+    <div class="emoji-grid">
+      ${popularEmojis.map(emoji => `<div class="emoji-item" data-emoji="${emoji}">${emoji}</div>`).join('')}
+    </div>
+  `;
+
+  toggleBtn.onclick = (e) => {
+    e.stopPropagation();
+    popover.classList.toggle('active');
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!popover.contains(e.target) && e.target !== toggleBtn) {
+      popover.classList.remove('active');
+    }
+  });
+
+  popover.querySelectorAll('.emoji-item').forEach(item => {
+    item.onclick = (e) => {
+      e.stopPropagation();
+      const emoji = item.getAttribute('data-emoji');
+      insertTextAtCursor(textarea, emoji);
+      popover.classList.remove('active');
+      textarea.dispatchEvent(new Event('input'));
+      textarea.focus();
+    };
+  });
+}
+
+function insertTextAtCursor(input, text) {
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const val = input.value;
+  input.value = val.substring(0, start) + text + val.substring(end);
+  input.selectionStart = input.selectionEnd = start + text.length;
+}
+
+// ============================================================================
+// 4. Mention / Hashtag Autocomplete Dropdown
+// ============================================================================
+let autocompleteTimeout = null;
+function handleComposerAutocomplete(textarea, menu) {
+  if (!menu) return;
+  clearTimeout(autocompleteTimeout);
+
+  const text = textarea.value.slice(0, textarea.selectionStart);
+  const match = text.match(/(?:^|\s)([@#])([a-zA-Z0-9_]*)$/);
+
+  if (!match) {
+    menu.classList.remove('active');
+    return;
+  }
+
+  const trigger = match[1]; // '@' or '#'
+  const query = match[2];
+
+  autocompleteTimeout = setTimeout(async () => {
+    try {
+      let items = [];
+      if (trigger === '@') {
+        const res = await API.discoverUsers(query);
+        items = (res.users || []).slice(0, 4).map(u => ({
+          label: `@${u.username}`,
+          sub: u.bio || 'Linkora creator',
+          insert: `@${u.username} `
+        }));
+      } else {
+        const tags = ['webdev', 'buildinpublic', 'design', 'javascript', 'tech', 'creators', 'ai', 'css'];
+        const filtered = tags.filter(t => t.toLowerCase().includes(query.toLowerCase())).slice(0, 4);
+        items = filtered.map(t => ({
+          label: `#${t}`,
+          sub: 'Trending topic',
+          insert: `#${t} `
+        }));
+      }
+
+      if (items.length === 0) {
+        menu.classList.remove('active');
+        return;
+      }
+
+      menu.innerHTML = items.map(item => `
+        <div class="autocomplete-item" data-insert="${item.insert}">
+          <div>
+            <div style="font-weight: 700; font-size: var(--font-xs);">${escapeHTML(item.label)}</div>
+            <div style="font-size: 10px; color: var(--text-faint);">${escapeHTML(item.sub)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      menu.classList.add('active');
+
+      menu.querySelectorAll('.autocomplete-item').forEach(el => {
+        el.onclick = () => {
+          const toInsert = el.getAttribute('data-insert');
+          const before = text.replace(/([@#][a-zA-Z0-9_]*)$/, '');
+          const after = textarea.value.slice(textarea.selectionStart);
+          textarea.value = before + toInsert + after;
+          menu.classList.remove('active');
+          textarea.dispatchEvent(new Event('input'));
+          textarea.focus();
+        };
+      });
+    } catch (e) {
+      menu.classList.remove('active');
+    }
+  }, 200);
+}
+
+// ============================================================================
+// 5. Feed Tabs (Following vs For You)
 // ============================================================================
 function setupTabs() {
   const tabs = document.querySelectorAll('.feed-tab');
   tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
+    tab.onclick = () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       currentFilter = tab.getAttribute('data-filter') || '';
+      nextCursor = null;
       loadFeed();
-    });
+    };
   });
 }
 
 // ============================================================================
-// 4. Load Feed Stream
+// 6. Infinite Scroll & Real-Time Feed Stream
 // ============================================================================
 async function loadFeed(isLoggedOut = false) {
   const feedContainer = document.getElementById('feed-container');
   if (!feedContainer) return;
 
-  // Render Skeleton Placeholders
+  // Render initial skeletons
   feedContainer.innerHTML = `
     <div class="card skeleton-card">
       <div style="display:flex; gap: 12px; align-items:center; margin-bottom: 12px;">
@@ -270,8 +519,9 @@ async function loadFeed(isLoggedOut = false) {
   `;
 
   try {
-    const data = await API.getFeed(currentFilter || (isLoggedOut ? 'all' : ''));
+    const data = await API.getFeed(currentFilter || (isLoggedOut ? 'for_you' : ''), null, 20);
     const posts = data.posts || [];
+    nextCursor = data.nextCursor;
 
     if (posts.length === 0) {
       feedContainer.innerHTML = `
@@ -279,7 +529,7 @@ async function loadFeed(isLoggedOut = false) {
           ${renderEmptyState({
             icon: 'sparkles',
             title: 'Your feed is quiet',
-            description: 'Follow creators or explore community posts to fill your home stream.',
+            description: 'Follow creators or switch to "For You" to discover trending posts.',
             actionText: 'Explore Creators',
             actionHref: '/discover.html'
           })}
@@ -298,33 +548,150 @@ async function loadFeed(isLoggedOut = false) {
       `;
     }
 
-    feedContainer.innerHTML = banner + posts.map(post => createPostCardHTML(post, currentUser)).join('');
-    posts.forEach(post => attachPostEvents(post.id));
+    feedContainer.innerHTML = banner + posts.map(p => createPostCardHTML(p, currentUser)).join('');
+    posts.forEach(p => attachPostEvents(p.id));
   } catch (err) {
     feedContainer.innerHTML = `
       <div class="card" style="padding: var(--space-4); text-align: center;">
-        <div style="color: var(--danger); font-size: var(--font-base); font-weight: 700; margin-bottom: 6px;">Failed to load feed</div>
-        <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: var(--space-2);">${escapeHTML(err.message)}</p>
+        <div style="color: var(--danger); font-size: var(--font-base); font-weight: 700;">Failed to load feed</div>
+        <p style="font-size: var(--font-sm); color: var(--text-muted); margin-bottom: 12px;">${escapeHTML(err.message)}</p>
         <button onclick="loadFeed()" class="btn btn-secondary btn-sm">Retry</button>
       </div>
     `;
   }
 }
 
+function setupInfiniteScroll() {
+  const sentinel = document.getElementById('feed-infinite-sentinel');
+  if (!sentinel) return;
+
+  const observer = new IntersectionObserver(async (entries) => {
+    if (entries[0].isIntersecting && nextCursor && !isLoadingMore) {
+      isLoadingMore = true;
+      sentinel.innerHTML = `<div class="skeleton" style="height: 30px; border-radius: var(--radius-md);"></div>`;
+
+      try {
+        const data = await API.getFeed(currentFilter, nextCursor, 15);
+        const newPosts = data.posts || [];
+        nextCursor = data.nextCursor;
+
+        const feedContainer = document.getElementById('feed-container');
+        if (feedContainer && newPosts.length > 0) {
+          feedContainer.insertAdjacentHTML('beforeend', newPosts.map(p => createPostCardHTML(p, currentUser)).join(''));
+          newPosts.forEach(p => attachPostEvents(p.id));
+        }
+      } catch (e) {
+        console.error('Infinite scroll error:', e);
+      } finally {
+        sentinel.innerHTML = '';
+        isLoadingMore = false;
+      }
+    }
+  }, { rootMargin: '300px' });
+
+  observer.observe(sentinel);
+}
+
+function setupSocketRealtime() {
+  const socket = getSocketClient();
+  if (!socket) return;
+
+  const pillMount = document.getElementById('new-posts-pill-mount');
+  const countText = document.getElementById('new-posts-count-text');
+  const pillBtn = document.getElementById('btn-new-posts-pill');
+
+  socket.on('new_post', (post) => {
+    // If not my own post, increment pending counter and show pill
+    if (currentUser && post.user_id !== currentUser.id) {
+      pendingRealtimePosts++;
+      if (countText) {
+        countText.textContent = `↑ ${pendingRealtimePosts} new ${pendingRealtimePosts === 1 ? 'post' : 'posts'}`;
+      }
+      if (pillMount) pillMount.style.display = 'block';
+    }
+  });
+
+  if (pillBtn) {
+    pillBtn.onclick = () => {
+      pendingRealtimePosts = 0;
+      if (pillMount) pillMount.style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      loadFeed();
+    };
+  }
+}
+
 // ============================================================================
-// 5. Post Card HTML Generator
+// 7. Post Card HTML Generator
 // ============================================================================
 function createPostCardHTML(post, user) {
   const isOwner = user && user.id === post.user_id;
   const isLiked = Boolean(post.is_liked);
+  const isBookmarked = Boolean(post.is_bookmarked);
+  const isReposted = Boolean(post.is_reposted);
   const likeCount = post.like_count || 0;
   const commentCount = post.comment_count || 0;
+  const repostCount = post.repost_count || 0;
+
+  // Media Grid HTML
+  const mediaGrid = renderMediaGridHTML(post.media);
+
+  // Link Preview if any URL
+  const linkPreview = extractLinkPreview(post.content);
+
+  // Poll Component HTML
+  let pollHtml = '';
+  if (post.poll) {
+    const poll = post.poll;
+    const hasVoted = Boolean(poll.user_voted_option_id);
+    const isExpired = Boolean(poll.is_expired);
+    const showResults = hasVoted || isExpired || isOwner;
+
+    pollHtml = `
+      <div class="post-poll-card" id="poll-container-${post.id}">
+        ${poll.question ? `<div class="poll-question">${escapeHTML(poll.question)}</div>` : ''}
+        <div class="poll-options-list">
+          ${poll.options.map(opt => {
+            const isMyVote = poll.user_voted_option_id === opt.id;
+            return `
+              <button 
+                type="button" 
+                class="poll-option-btn ${isMyVote ? 'voted' : ''}" 
+                data-poll-option-id="${opt.id}" 
+                data-post-id="${post.id}"
+                ${showResults || !user ? 'disabled' : ''}
+              >
+                ${showResults ? `<div class="poll-progress-fill" style="width: ${opt.percentage}%;"></div>` : ''}
+                <div class="poll-option-text">
+                  <span>${escapeHTML(opt.option_text)}</span>
+                  ${isMyVote ? `<span style="color: var(--primary); font-size: 11px;">✓ Voted</span>` : ''}
+                </div>
+                ${showResults ? `<span class="poll-option-percent">${opt.percentage}%</span>` : ''}
+              </button>
+            `;
+          }).join('')}
+        </div>
+        <div class="poll-meta-row">
+          <span>${poll.total_votes} ${poll.total_votes === 1 ? 'vote' : 'votes'}</span>
+          <span>${isExpired ? 'Final results' : (hasVoted ? 'Vote registered' : 'Tap option to vote')}</span>
+        </div>
+      </div>
+    `;
+  }
 
   return `
     <article class="card post-card" id="post-${post.id}" data-post-id="${post.id}" style="margin-bottom: var(--space-2-5); padding: var(--space-3);">
-      <!-- Post Header -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
+      <!-- Pinned Post Indicator -->
+      ${post.is_pinned ? `
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--primary); margin-bottom: 6px;">
+          ${renderIcon('bookmark', '', 'width="12" height="12"')}
+          <span>Pinned post</span>
+        </div>
+      ` : ''}
+
+      <!-- Header: Author & More Options -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
           <a href="/profile.html?user=${encodeURIComponent(post.username)}">
             ${renderAvatar({ username: post.username, avatar_url: post.avatar_url }, 'avatar-md')}
           </a>
@@ -334,8 +701,11 @@ function createPostCardHTML(post, user) {
                 ${escapeHTML(post.username)}
               </a>
               ${renderVerifiedBadge()}
-              <span style="font-size: 12px; color: var(--text-faint);">·</span>
-              <span style="font-size: 12px; color: var(--text-muted);" title="${formatExactDate(post.created_at)}">${timeAgo(post.created_at)}</span>
+              <span style="font-size: 11px; color: var(--text-faint);">·</span>
+              <a href="/post.html?id=${post.id}" style="font-size: 12px; color: var(--text-muted);" title="${formatExactDate(post.created_at)}">
+                ${timeAgo(post.created_at)}
+              </a>
+              ${post.edited_at ? `<span style="font-size: 11px; color: var(--text-faint); font-style: italic;">(edited)</span>` : ''}
             </div>
             <div style="font-size: 11px; color: var(--text-muted);">
               @${escapeHTML(post.username)}
@@ -343,9 +713,9 @@ function createPostCardHTML(post, user) {
           </div>
         </div>
 
-        <!-- Post Options Menu -->
+        <!-- More Options Menu (...) -->
         <div class="dropdown-wrap">
-          <button type="button" class="btn-icon" data-more-btn="${post.id}" aria-label="More post options">
+          <button type="button" class="btn-icon" data-more-btn="${post.id}" aria-label="More options">
             ${renderIcon('more-horizontal', '', 'width="18" height="18"')}
           </button>
           <div class="dropdown-menu" id="post-menu-${post.id}">
@@ -353,15 +723,34 @@ function createPostCardHTML(post, user) {
               ${renderIcon('link', '', 'width="16" height="16"')}
               <span>Copy link</span>
             </button>
+
             ${isOwner ? `
+              ${post.can_edit ? `
+                <button type="button" class="dropdown-item" data-edit-post="${post.id}">
+                  ${renderIcon('edit', '', 'width="16" height="16"')}
+                  <span>Edit post</span>
+                </button>
+              ` : ''}
+              <button type="button" class="dropdown-item" data-pin-post="${post.id}">
+                ${renderIcon('bookmark', '', 'width="16" height="16"')}
+                <span>${post.is_pinned ? 'Unpin from profile' : 'Pin to profile'}</span>
+              </button>
               <button type="button" class="dropdown-item danger" data-delete-post="${post.id}">
                 ${renderIcon('trash-2', '', 'width="16" height="16"')}
                 <span>Delete</span>
               </button>
             ` : `
-              <button type="button" class="dropdown-item" onclick="showToast('User muted', 'info')">
+              <button type="button" class="dropdown-item" data-mute-user="${post.user_id}" data-username="${escapeHTML(post.username)}">
                 ${renderIcon('shield', '', 'width="16" height="16"')}
                 <span>Mute @${escapeHTML(post.username)}</span>
+              </button>
+              <button type="button" class="dropdown-item danger" data-block-user="${post.user_id}" data-username="${escapeHTML(post.username)}">
+                ${renderIcon('x', '', 'width="16" height="16"')}
+                <span>Block @${escapeHTML(post.username)}</span>
+              </button>
+              <button type="button" class="dropdown-item danger" data-report-post="${post.id}">
+                ${renderIcon('alert-triangle', '', 'width="16" height="16"')}
+                <span>Report post</span>
               </button>
             `}
           </div>
@@ -369,20 +758,22 @@ function createPostCardHTML(post, user) {
       </div>
 
       <!-- Post Body -->
-      <div style="font-size: 15px; line-height: 1.6; color: var(--text-main); margin-bottom: 12px; word-break: break-word;">
+      <div class="post-content-body" style="font-size: 15px; line-height: 1.6; color: var(--text-main); margin-bottom: 10px; word-break: break-word;">
         ${formatPostContent(post.content)}
       </div>
 
-      <!-- Post Image -->
-      ${post.image_url ? `
-        <div style="border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; max-height: 520px; background: var(--bg-surface-elevated);">
-          <img src="${escapeHTML(post.image_url)}" alt="Post media" style="width: 100%; height: auto; max-height: 520px; object-fit: cover; display: block;" loading="lazy" />
-        </div>
-      ` : ''}
+      <!-- Multi-Image Grid -->
+      ${mediaGrid}
 
-      <!-- Post Action Buttons -->
-      <div style="display: flex; align-items: center; gap: 16px; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
-        <!-- Like Button -->
+      <!-- Link Preview -->
+      ${linkPreview}
+
+      <!-- Interactive Poll -->
+      ${pollHtml}
+
+      <!-- Actions Footer -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border-subtle); margin-top: 6px;">
+        <!-- Like -->
         <button type="button" class="post-action-btn ${isLiked ? 'liked' : ''}" data-like-btn="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: ${isLiked ? 'var(--accent-pink)' : 'var(--text-muted)'}; font-size: var(--font-xs); font-weight: 600;">
           <span class="like-icon-wrap" style="display: inline-flex;">
             ${renderIcon('heart', isLiked ? 'fill-pink' : '', 'width="18" height="18"')}
@@ -390,85 +781,61 @@ function createPostCardHTML(post, user) {
           <span id="like-count-${post.id}">${formatCount(likeCount)}</span>
         </button>
 
-        <!-- Comments Button -->
-        <button type="button" class="post-action-btn" data-toggle-comments="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-xs); font-weight: 600;">
+        <!-- Comments (link to detail / toggle inline) -->
+        <a href="/post.html?id=${post.id}" class="post-action-btn" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-xs); font-weight: 600; text-decoration: none;">
           ${renderIcon('message-circle', '', 'width="18" height="18"')}
-          <span id="comment-count-${post.id}">${formatCount(commentCount)}</span>
+          <span>${formatCount(commentCount)}</span>
+        </a>
+
+        <!-- Repost / Quote -->
+        <button type="button" class="post-action-btn ${isReposted ? 'reposted' : ''}" data-repost-btn="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: ${isReposted ? 'var(--success)' : 'var(--text-muted)'}; font-size: var(--font-xs); font-weight: 600;">
+          ${renderIcon('repeat', '', 'width="18" height="18"')}
+          <span id="repost-count-${post.id}">${formatCount(repostCount)}</span>
         </button>
 
-        <!-- Share Button -->
-        <button type="button" class="post-action-btn" data-share-post="${post.id}" style="display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--font-xs); font-weight: 600;">
+        <!-- Bookmark -->
+        <button type="button" class="post-action-btn ${isBookmarked ? 'bookmarked' : ''}" data-bookmark-btn="${post.id}" style="display: inline-flex; align-items: center; color: ${isBookmarked ? 'var(--primary)' : 'var(--text-muted)'};" title="Save post">
+          ${renderIcon('bookmark', isBookmarked ? 'fill-primary' : '', 'width="18" height="18"')}
+        </button>
+
+        <!-- Share -->
+        <button type="button" class="post-action-btn" data-share-post="${post.id}" style="display: inline-flex; align-items: center; color: var(--text-muted);" title="Share post">
           ${renderIcon('share-2', '', 'width="18" height="18"')}
-          <span>Share</span>
         </button>
       </div>
-
-      <!-- Comments Stream -->
-      <section class="comments-section" id="comments-${post.id}" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-subtle);">
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <input 
-            type="text" 
-            class="input-field" 
-            id="comment-input-${post.id}" 
-            placeholder="Write a thoughtful reply..." 
-            maxlength="500" 
-            style="padding: 8px 12px; font-size: var(--font-xs);"
-          />
-          <button type="button" class="btn btn-primary btn-xs" data-submit-comment="${post.id}">
-            Reply
-          </button>
-        </div>
-        <div class="comments-list" id="comments-list-${post.id}"></div>
-      </section>
     </article>
   `;
 }
 
 // ============================================================================
-// 6. Post Interactive Events
+// 8. Post Interactive Events (Likes, Reposts, Bookmarks, Menus, Polls)
 // ============================================================================
 function attachPostEvents(postId) {
   const postCard = document.getElementById(`post-${postId}`);
   if (!postCard) return;
 
-  // More menu toggle
+  // 1. More Menu Dropdown
   const moreBtn = postCard.querySelector(`[data-more-btn="${postId}"]`);
   const menuDropdown = document.getElementById(`post-menu-${postId}`);
   if (moreBtn && menuDropdown) {
-    moreBtn.addEventListener('click', (e) => {
+    moreBtn.onclick = (e) => {
       e.stopPropagation();
       document.querySelectorAll('.dropdown-menu').forEach(d => {
         if (d !== menuDropdown) d.classList.remove('show');
       });
       menuDropdown.classList.toggle('show');
-    });
+    };
 
     document.addEventListener('click', () => {
       menuDropdown.classList.remove('show');
     });
   }
 
-  // Share / Copy Link
-  const shareBtns = postCard.querySelectorAll(`[data-share-post="${postId}"]`);
-  shareBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const postUrl = `${window.location.origin}/#post-${postId}`;
-      navigator.clipboard.writeText(postUrl).then(() => {
-        showToast('Link copied to clipboard!', 'success');
-      }).catch(() => {
-        showToast('Failed to copy link', 'error');
-      });
-    });
-  });
-
-  // Like button with Heart Burst Animation
+  // 2. Like Action with Heart Burst
   const likeBtn = postCard.querySelector(`[data-like-btn="${postId}"]`);
   if (likeBtn) {
-    likeBtn.addEventListener('click', async () => {
-      if (!currentUser) {
-        showToast('Please sign in to like posts', 'info');
-        return;
-      }
+    likeBtn.onclick = async () => {
+      if (!currentUser) return showToast('Please sign in to like posts', 'info');
 
       const countEl = document.getElementById(`like-count-${postId}`);
       const wasLiked = likeBtn.classList.contains('liked');
@@ -479,7 +846,6 @@ function attachPostEvents(postId) {
       likeBtn.style.color = !wasLiked ? 'var(--accent-pink)' : 'var(--text-muted)';
       countEl.textContent = formatCount(wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1);
 
-      // Play heart burst animation
       const iconWrap = likeBtn.querySelector('.like-icon-wrap');
       if (iconWrap && !wasLiked) {
         iconWrap.classList.add('animate-heart-burst');
@@ -492,34 +858,80 @@ function attachPostEvents(postId) {
         likeBtn.style.color = res.liked ? 'var(--accent-pink)' : 'var(--text-muted)';
         countEl.textContent = formatCount(res.like_count);
       } catch (err) {
-        // Rollback
         likeBtn.classList.toggle('liked', wasLiked);
         likeBtn.style.color = wasLiked ? 'var(--accent-pink)' : 'var(--text-muted)';
         countEl.textContent = formatCount(currentCount);
         showToast(err.message, 'error');
       }
-    });
+    };
   }
 
-  // Delete Post (Replaced with Reusable Confirm Dialog)
+  // 3. Repost Action
+  const repostBtn = postCard.querySelector(`[data-repost-btn="${postId}"]`);
+  if (repostBtn) {
+    repostBtn.onclick = async () => {
+      if (!currentUser) return showToast('Please sign in to repost', 'info');
+      try {
+        const res = await API.toggleRepost(postId);
+        repostBtn.classList.toggle('reposted', res.reposted);
+        repostBtn.style.color = res.reposted ? 'var(--success)' : 'var(--text-muted)';
+        const countEl = document.getElementById(`repost-count-${postId}`);
+        if (countEl) countEl.textContent = formatCount(res.repost_count);
+        showToast(res.message, 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
+  }
+
+  // 4. Bookmark Action
+  const bookmarkBtn = postCard.querySelector(`[data-bookmark-btn="${postId}"]`);
+  if (bookmarkBtn) {
+    bookmarkBtn.onclick = async () => {
+      if (!currentUser) return showToast('Please sign in to save bookmarks', 'info');
+      try {
+        const res = await API.toggleBookmark(postId);
+        bookmarkBtn.classList.toggle('bookmarked', res.bookmarked);
+        bookmarkBtn.style.color = res.bookmarked ? 'var(--primary)' : 'var(--text-muted)';
+        showToast(res.message, 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
+  }
+
+  // 5. Share Action (Web Share API + Clipboard)
+  const shareBtns = postCard.querySelectorAll(`[data-share-post="${postId}"]`);
+  shareBtns.forEach(btn => {
+    btn.onclick = async () => {
+      const postUrl = `${window.location.origin}/post.html?id=${postId}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Linkora Post', url: postUrl });
+          return;
+        } catch (e) {}
+      }
+      navigator.clipboard.writeText(postUrl).then(() => {
+        showToast('Link copied to clipboard!', 'success');
+      });
+    };
+  });
+
+  // 6. Delete Action
   const deleteBtn = postCard.querySelector(`[data-delete-post="${postId}"]`);
   if (deleteBtn) {
-    deleteBtn.addEventListener('click', () => {
+    deleteBtn.onclick = () => {
       showConfirmDialog({
         title: 'Delete this post?',
-        message: 'This will permanently remove the post and its comments from Linkora.',
-        confirmText: 'Delete Post',
-        cancelText: 'Keep Post',
+        message: 'This post and all its replies will be permanently removed.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
         isDanger: true,
         onConfirm: async () => {
           try {
             await API.deletePost(postId);
-            postCard.style.transition = 'all 0.2s ease';
-            postCard.style.opacity = '0';
-            postCard.style.transform = 'scale(0.96)';
-            setTimeout(() => postCard.remove(), 200);
+            postCard.remove();
             showToast('Post deleted', 'info');
-
             const postCountEl = document.getElementById('sidebar-post-count');
             if (postCountEl) {
               postCountEl.textContent = Math.max(0, parseInt(postCountEl.textContent || '1', 10) - 1);
@@ -529,149 +941,114 @@ function attachPostEvents(postId) {
           }
         }
       });
-    });
+    };
   }
 
-  // Toggle comments
-  const toggleCommentsBtn = postCard.querySelector(`[data-toggle-comments="${postId}"]`);
-  const commentsSection = document.getElementById(`comments-${postId}`);
-  if (toggleCommentsBtn && commentsSection) {
-    toggleCommentsBtn.addEventListener('click', () => {
-      const isVisible = commentsSection.style.display === 'block';
-      if (isVisible) {
-        commentsSection.style.display = 'none';
-      } else {
-        commentsSection.style.display = 'block';
-        loadComments(postId);
-      }
-    });
-  }
+  // 7. Edit Action (within 15 minutes)
+  const editBtn = postCard.querySelector(`[data-edit-post="${postId}"]`);
+  if (editBtn) {
+    editBtn.onclick = () => {
+      const contentEl = postCard.querySelector('.post-content-body');
+      const currentContent = contentEl ? contentEl.innerText.trim() : '';
 
-  // Submit comment
-  const submitCommentBtn = postCard.querySelector(`[data-submit-comment="${postId}"]`);
-  const commentInput = document.getElementById(`comment-input-${postId}`);
-  if (submitCommentBtn && commentInput) {
-    const handleComment = async () => {
-      if (!currentUser) {
-        showToast('Please sign in to comment', 'info');
-        return;
-      }
-
-      const text = commentInput.value.trim();
-      if (!text) return;
-
-      submitCommentBtn.disabled = true;
-      try {
-        const res = await API.addComment(postId, text);
-        commentInput.value = '';
-        const listEl = document.getElementById(`comments-list-${postId}`);
-        const countEl = document.getElementById(`comment-count-${postId}`);
-        if (countEl) countEl.textContent = formatCount(res.comment_count);
-
-        const newCommentHtml = createCommentHTML(res.comment, currentUser);
-        if (listEl) {
-          listEl.insertAdjacentHTML('afterbegin', newCommentHtml);
-          attachCommentEvents(res.comment.id);
-        }
-        showToast('Reply posted', 'success');
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        submitCommentBtn.disabled = false;
+      const newContent = prompt('Edit your post (within 15 minutes):', currentContent);
+      if (newContent !== null && newContent.trim() !== '') {
+        API.editPost(postId, newContent.trim()).then(res => {
+          if (contentEl) contentEl.innerHTML = formatPostContent(res.post.content);
+          showToast('Post updated successfully', 'success');
+        }).catch(err => {
+          showToast(err.message, 'error');
+        });
       }
     };
+  }
 
-    submitCommentBtn.addEventListener('click', handleComment);
-    commentInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleComment();
+  // 8. Pin to Profile Action
+  const pinBtn = postCard.querySelector(`[data-pin-post="${postId}"]`);
+  if (pinBtn) {
+    pinBtn.onclick = async () => {
+      try {
+        const res = await API.togglePin(postId);
+        showToast(res.message, 'success');
+        loadFeed();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
-    });
+    };
   }
-}
 
-// ============================================================================
-// 7. Comments Handling
-// ============================================================================
-async function loadComments(postId) {
-  const listEl = document.getElementById(`comments-list-${postId}`);
-  if (!listEl) return;
-
-  listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: 8px 0;">Loading comments...</div>';
-
-  try {
-    const data = await API.getComments(postId);
-    const comments = data.comments || [];
-
-    if (comments.length === 0) {
-      listEl.innerHTML = '<div style="font-size: var(--font-xs); color: var(--text-faint); padding: 8px 0;">No replies yet. Be the first to start the conversation.</div>';
-      return;
-    }
-
-    listEl.innerHTML = comments.map(c => createCommentHTML(c, currentUser)).join('');
-    comments.forEach(c => attachCommentEvents(c.id));
-  } catch (err) {
-    listEl.innerHTML = `<div style="font-size: var(--font-xs); color: var(--danger);">Failed to load comments</div>`;
+  // 9. Mute User Action
+  const muteBtn = postCard.querySelector(`[data-mute-user]`);
+  if (muteBtn) {
+    muteBtn.onclick = async () => {
+      const targetUserId = muteBtn.getAttribute('data-mute-user');
+      const uname = muteBtn.getAttribute('data-username');
+      try {
+        await API.toggleMute(targetUserId);
+        showToast(`Muted @${uname}. Their posts won't appear in your feed.`, 'info');
+        postCard.remove();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
   }
-}
 
-function createCommentHTML(comment, user) {
-  const isOwner = user && user.id === comment.user_id;
-
-  return `
-    <div class="comment-item" id="comment-${comment.id}" style="display: flex; gap: 10px; margin-bottom: 8px; padding: 6px 0;">
-      <a href="/profile.html?user=${encodeURIComponent(comment.username)}">
-        ${renderAvatar({ username: comment.username, avatar_url: comment.avatar_url }, 'avatar-xs')}
-      </a>
-      <div style="flex: 1; background: var(--bg-surface-elevated); padding: 8px 12px; border-radius: var(--radius-md);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <a href="/profile.html?user=${encodeURIComponent(comment.username)}" style="font-size: var(--font-xs); font-weight: 700; color: var(--text-main);">
-              ${escapeHTML(comment.username)}
-            </a>
-            <span style="font-size: 11px; color: var(--text-faint);">${timeAgo(comment.created_at)}</span>
-          </div>
-          ${isOwner ? `
-            <button type="button" class="btn-icon" data-delete-comment="${comment.id}" title="Delete comment" style="width: 20px; height: 20px;">
-              ${renderIcon('x', '', 'width="12" height="12"')}
-            </button>
-          ` : ''}
-        </div>
-        <div style="font-size: var(--font-xs); color: var(--text-main); word-break: break-word;">
-          ${escapeHTML(comment.content)}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function attachCommentEvents(commentId) {
-  const item = document.getElementById(`comment-${commentId}`);
-  if (!item) return;
-
-  const delBtn = item.querySelector(`[data-delete-comment="${commentId}"]`);
-  if (delBtn) {
-    delBtn.addEventListener('click', () => {
+  // 10. Block User Action
+  const blockBtn = postCard.querySelector(`[data-block-user]`);
+  if (blockBtn) {
+    blockBtn.onclick = () => {
+      const targetUserId = blockBtn.getAttribute('data-block-user');
+      const uname = blockBtn.getAttribute('data-username');
       showConfirmDialog({
-        title: 'Delete reply?',
-        message: 'This will remove your reply permanently.',
-        confirmText: 'Delete',
+        title: `Block @${uname}?`,
+        message: 'They will no longer be able to follow you or see your posts.',
+        confirmText: 'Block',
         cancelText: 'Cancel',
         isDanger: true,
         onConfirm: async () => {
           try {
-            const res = await API.deleteComment(commentId);
-            item.remove();
-            showToast('Comment deleted', 'info');
-
-            const countEl = document.getElementById(`comment-count-${res.post_id}`);
-            if (countEl) countEl.textContent = formatCount(res.comment_count);
+            await API.toggleBlock(targetUserId);
+            showToast(`Blocked @${uname}`, 'info');
+            loadFeed();
           } catch (err) {
             showToast(err.message, 'error');
           }
         }
       });
-    });
+    };
   }
+
+  // 11. Report Post Action
+  const reportBtn = postCard.querySelector(`[data-report-post="${postId}"]`);
+  if (reportBtn) {
+    reportBtn.onclick = () => {
+      const reason = prompt('Please select report reason:\n1. Spam\n2. Harassment\n3. Inappropriate content\n4. Other', 'Spam');
+      if (reason) {
+        API.reportPost(postId, reason).then(res => {
+          showToast(res.message, 'success');
+        }).catch(err => {
+          showToast(err.message, 'error');
+        });
+      }
+    };
+  }
+
+  // 12. Poll Option Voting Action
+  const pollOptionBtns = postCard.querySelectorAll('.poll-option-btn');
+  pollOptionBtns.forEach(btn => {
+    btn.onclick = async () => {
+      if (!currentUser) return showToast('Please sign in to vote', 'info');
+      const optId = btn.getAttribute('data-poll-option-id');
+      try {
+        await API.votePoll(postId, optId);
+        showToast('Vote counted!', 'success');
+        // Refresh single post
+        const res = await API.getPost(postId);
+        postCard.outerHTML = createPostCardHTML(res.post, currentUser);
+        attachPostEvents(postId);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    };
+  });
 }
