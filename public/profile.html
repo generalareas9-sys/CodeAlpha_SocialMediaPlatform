@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile · Linkora</title>
+  <meta name="description" content="Connect. Share. Grow. View user profile and posts on Linkora.">
+  <meta name="theme-color" content="#0F172A">
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Profile · Linkora">
+  <meta property="og:description" content="Connect. Share. Grow. A minimalist community for builders and creators.">
+  <meta property="og:image" content="/assets/og-image.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/theme.css">
+</head>
+<body>
+  <!-- Shared Navbar -->
+  <div id="navbar-mount"></div>
+
+  <div class="main-wrapper">
+    <main class="app-container single-col" id="profile-content-mount">
+      <!-- Profile Header Mount -->
+      <div id="profile-header-mount"></div>
+
+      <!-- User Posts Mount -->
+      <section id="profile-posts-mount" aria-label="User Posts Stream"></section>
+    </main>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" id="edit-profile-modal">
+    <div class="card modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Profile</h2>
+        <button type="button" class="btn-close-modal" id="btn-close-edit-modal" title="Close">✕</button>
+      </div>
+
+      <form id="edit-profile-form">
+        <div class="form-group">
+          <label class="form-label" for="edit-bio">Bio</label>
+          <textarea 
+            id="edit-bio" 
+            class="input-field" 
+            rows="3" 
+            placeholder="Tell the community about yourself..." 
+            maxlength="300"
+          ></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="edit-avatar-url">Avatar Image URL</label>
+          <input 
+            type="url" 
+            id="edit-avatar-url" 
+            class="input-field" 
+            placeholder="https://example.com/avatar.jpg" 
+          />
+          <small style="color: var(--text-faint); font-size: 11px; display: block; margin-top: 4px;">
+            Leave empty to use automatic initials avatar.
+          </small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-6);">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('edit-profile-modal').classList.remove('active')">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btn-save-profile">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Followers / Following List Modal -->
+  <div class="modal-overlay" id="users-list-modal">
+    <div class="card modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title" id="users-modal-title">Users</h2>
+        <button type="button" class="btn-close-modal" id="btn-close-users-modal" title="Close">✕</button>
+      </div>
+      <div id="users-modal-content" style="max-height: 400px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <!-- Shared Footer -->
+  <div id="footer-mount"></div>
+
+  <!-- Scripts -->
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/feed.js"></script>
+  <script src="/js/profile.js"></script>
+  <script src="/js/nav.js"></script>
+</body>
+</html>
