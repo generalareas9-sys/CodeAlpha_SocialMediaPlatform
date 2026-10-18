@@ -87,9 +87,7 @@ function renderProfileHeader(user) {
           <div>
             ${isMe ? `
               <button type="button" class="btn btn-secondary btn-sm" id="btn-open-edit-modal">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
+                ${renderIcon('edit', '', 'width="14" height="14"')}
                 <span>Edit Profile</span>
               </button>
             ` : (currentUser ? `
@@ -103,7 +101,10 @@ function renderProfileHeader(user) {
         </div>
 
         <div class="profile-names">
-          <h1 class="profile-display-name">${escapeHTML(user.username)}</h1>
+          <h1 class="profile-display-name" style="display: inline-flex; align-items: center; gap: 4px;">
+            ${escapeHTML(user.username)}
+            ${renderVerifiedBadge()}
+          </h1>
           <div class="profile-handle">@${escapeHTML(user.username)}</div>
         </div>
 
@@ -200,12 +201,12 @@ function renderProfilePosts(posts) {
 
   if (posts.length === 0) {
     postsMount.innerHTML = `
-      <div class="card empty-state">
-        <svg class="empty-state-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-        </svg>
-        <div class="empty-state-title">No posts yet</div>
-        <p class="empty-state-desc">This creator hasn't published any posts.</p>
+      <div>
+        ${renderEmptyState({
+          icon: 'sparkles',
+          title: 'No posts yet',
+          description: 'This creator has not published any posts yet.'
+        })}
       </div>
     `;
     return;
@@ -219,6 +220,11 @@ function setupModals(user) {
   const editForm = document.getElementById('edit-profile-form');
   const editModal = document.getElementById('edit-profile-modal');
   const btnCloseEdit = document.getElementById('btn-close-edit-modal');
+
+  const btnCancelEdit = document.getElementById('btn-cancel-edit-modal');
+  if (btnCancelEdit && editModal) {
+    btnCancelEdit.addEventListener('click', () => editModal.classList.remove('active'));
+  }
 
   if (btnCloseEdit && editModal) {
     btnCloseEdit.addEventListener('click', () => editModal.classList.remove('active'));
