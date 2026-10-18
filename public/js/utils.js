@@ -418,3 +418,261 @@ function debounce(fn, delay = 250) {
 
 // Initialize theme immediately on evaluation
 initTheme();
+
+// ============================================================================
+// 8. Phase 2 Interactive Post Utilities: Lightbox, Ring Counter, Compression
+// ============================================================================
+
+/**
+ * 280-Character SVG Circular Ring Counter
+ */
+function updateCharRing(ringWrap, currentLen, maxLen = 280) {
+  if (!ringWrap) return;
+  const radius = 11;
+  const circumference = 2 * Math.PI * radius; // ~69.115
+  const remaining = maxLen - currentLen;
+  const progressPercent = Math.min(1, currentLen / maxLen);
+  const offset = circumference - (progressPercent * circumference);
+
+  const circle = ringWrap.querySelector('.char-ring-progress');
+  const number = ringWrap.querySelector('.char-ring-number');
+
+  if (circle) {
+    circle.style.strokeDasharray = `${circumference}`;
+    circle.style.strokeDashoffset = `${offset}`;
+
+    if (remaining < 0) {
+      circle.className = 'char-ring-progress danger';
+    } else if (remaining <= 20) {
+      circle.className = 'char-ring-progress warning';
+    } else {
+      circle.className = 'char-ring-progress';
+    }
+  }
+
+  if (number) {
+    if (remaining <= 20) {
+      number.textContent = remaining;
+      number.className = remaining < 0 ? 'char-ring-number danger' : 'char-ring-number';
+      number.style.display = 'block';
+    } else {
+      number.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Client-Side Image Compression using Canvas
+ */
+async function compressImageClientSide(file, maxWidth = 1600, quality = 0.85) {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.type === 'image/gif') return file; // Preserve animated GIFs
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob && blob.size < file.size) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), {
+                type: 'image/webp',
+                lastModified: Date.now()
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file); // fallback to original if compression wasn't smaller
+            }
+          },
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+}
+
+/**
+ * Image Lightbox Modal Controller (Arrows, Keyboard Navigation, Counter)
+ */
+let currentLightboxImages = [];
+let currentLightboxIdx = 0;
+
+function openLightbox(images = [], index = 0) {
+  if (!images || images.length === 0) return;
+  currentLightboxImages = images;
+  currentLightboxIdx = Math.max(0, Math.min(index, images.length - 1));
+
+  let lightbox = document.getElementById('global-lightbox-modal');
+  if (!lightbox) {
+    lightbox = document.createElement('div');
+    lightbox.id = 'global-lightbox-modal';
+    lightbox.className = 'lightbox-modal';
+    lightbox.innerHTML = `
+      <button type="button" class="lightbox-btn lightbox-close" id="lightbox-btn-close" aria-label="Close lightbox">
+        ${renderIcon('x', '', 'width="22" height="22"')}
+      </button>
+
+      <button type="button" class="lightbox-btn lightbox-prev" id="lightbox-btn-prev" aria-label="Previous image">
+        ${renderIcon('chevron-right', '', 'width="24" height="24" style="transform: rotate(180deg);"')}
+      </button>
+
+      <div class="lightbox-image-wrap">
+        <img src="" alt="Full view" class="lightbox-image" id="lightbox-current-img" />
+      </div>
+
+      <button type="button" class="lightbox-btn lightbox-next" id="lightbox-btn-next" aria-label="Next image">
+        ${renderIcon('chevron-right', '', 'width="24" height="24"')}
+      </button>
+
+      <div class="lightbox-counter" id="lightbox-counter">1 / 1</div>
+    `;
+    document.body.appendChild(lightbox);
+
+    // Event listeners
+    lightbox.querySelector('#lightbox-btn-close').onclick = closeLightbox;
+    lightbox.querySelector('#lightbox-btn-prev').onclick = prevLightboxImage;
+    lightbox.querySelector('#lightbox-btn-next').onclick = nextLightboxImage;
+    lightbox.onclick = (e) => {
+      if (e.target === lightbox) closeLightbox();
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') prevLightboxImage();
+      if (e.key === 'ArrowRight') nextLightboxImage();
+    });
+  }
+
+  updateLightboxView();
+  lightbox.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateLightboxView() {
+  const imgEl = document.getElementById('lightbox-current-img');
+  const counterEl = document.getElementById('lightbox-counter');
+  const prevBtn = document.getElementById('lightbox-btn-prev');
+  const nextBtn = document.getElementById('lightbox-btn-next');
+
+  if (imgEl && currentLightboxImages[currentLightboxIdx]) {
+    imgEl.src = currentLightboxImages[currentLightboxIdx];
+  }
+  if (counterEl) {
+    counterEl.textContent = `${currentLightboxIdx + 1} / ${currentLightboxImages.length}`;
+  }
+  if (prevBtn) {
+    prevBtn.style.display = currentLightboxImages.length > 1 ? 'flex' : 'none';
+  }
+  if (nextBtn) {
+    nextBtn.style.display = currentLightboxImages.length > 1 ? 'flex' : 'none';
+  }
+}
+
+function prevLightboxImage() {
+  if (currentLightboxImages.length <= 1) return;
+  currentLightboxIdx = (currentLightboxIdx - 1 + currentLightboxImages.length) % currentLightboxImages.length;
+  updateLightboxView();
+}
+
+function nextLightboxImage() {
+  if (currentLightboxImages.length <= 1) return;
+  currentLightboxIdx = (currentLightboxIdx + 1) % currentLightboxImages.length;
+  updateLightboxView();
+}
+
+function closeLightbox() {
+  const lightbox = document.getElementById('global-lightbox-modal');
+  if (lightbox) {
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * Render Post Media Grid (1, 2, 3, 4 images)
+ */
+function renderMediaGridHTML(mediaList = []) {
+  if (!mediaList || mediaList.length === 0) return '';
+  const count = Math.min(mediaList.length, 4);
+  const urls = mediaList.map(m => typeof m === 'string' ? m : m.media_url);
+  const urlsJson = escapeHTML(JSON.stringify(urls));
+
+  return `
+    <div class="post-media-grid grid-${count}" data-media-urls="${urlsJson}">
+      ${urls.slice(0, 4).map((url, i) => `
+        <img 
+          src="${escapeHTML(url)}" 
+          alt="Post media ${i + 1}" 
+          loading="lazy" 
+          onclick="openLightbox(JSON.parse(this.closest('.post-media-grid').dataset.mediaUrls), ${i})" 
+        />
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Link Preview Extractor
+ */
+function extractLinkPreview(text) {
+  if (!text) return '';
+  const urlMatch = text.match(/https?:\/\/[^\s]+/i);
+  if (!urlMatch) return '';
+
+  const url = urlMatch[0];
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    return `
+      <a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer" class="link-preview-card" style="text-decoration: none;">
+        <div class="link-preview-icon">
+          ${renderIcon('link', '', 'width="16" height="16"')}
+        </div>
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-size: var(--font-xs); font-weight: 700; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(host)}
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${escapeHTML(url)}
+          </div>
+        </div>
+      </a>
+    `;
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+ * Socket.io Client Helper
+ */
+let socketClient = null;
+function getSocketClient() {
+  if (socketClient) return socketClient;
+  if (typeof io !== 'undefined') {
+    socketClient = io();
+  }
+  return socketClient;
+}
